@@ -1,11 +1,25 @@
 import { defineConfig } from 'astro/config';
 import caseSearch from './integrations/case-search';
 import mdx from '@astrojs/mdx';
+import sitemap from '@astrojs/sitemap';
 import icon from 'astro-icon';
 import { resolveSiteData, builderRoot } from './scripts/site-data';
 import path from 'node:path';
+import { readFileSync } from 'node:fs';
 
 const data = resolveSiteData();
+const outDir = process.env.CONTENT_PREVIEW === 'drafts' ? './dist-drafts' : './dist';
+
+const sitemapIntegration = sitemap({
+  filter: (page) => {
+    const pathname = new URL(page).pathname;
+    if (!['/expertise/', '/articles/'].includes(pathname)) return true;
+    // Astro.redirect() inside a page produces HTML rather than a redirect route.
+    // Inspect these legacy URLs after rendering so a future real Articles page stays listed.
+    const html = readFileSync(path.join(builderRoot, outDir, pathname.slice(1), 'index.html'), 'utf8');
+    return !/<meta\b[^>]*\bhttp-equiv\s*=\s*["']refresh["']/i.test(html);
+  },
+});
 
 const allowedHosts = (process.env.TAILSCALE_HOSTNAME ?? '')
   .split(',').map((host) => host.trim()).filter(Boolean);
@@ -19,8 +33,8 @@ export default defineConfig({
     server: { fs: { allow: [builderRoot, data.contentDir, data.assetsDir] } },
   },
   output: 'static',
-  integrations: [mdx(), icon({ include: { lucide: ['house', 'briefcase-business', 'search', 'badge-check', 'fingerprint', 'book-open', 'mail', 'moon', 'sun', 'arrow-right', 'arrow-up-right', 'external-link', 'lightbulb', 'circle-alert', 'chevron-down', 'chevron-left', 'chevron-right', 'pause', 'play', 'circle', 'star', 'code', 'database', 'terminal', 'network', 'chart-no-axes-combined', 'chart-pie', 'hand-heart', 'users', 'landmark', 'bike', 'beer', 'box', 'mountain-snow', 'server', 'puzzle', 'shield-check'] } }), caseSearch()],
+  integrations: [mdx(), sitemapIntegration, icon({ include: { lucide: ['house', 'briefcase-business', 'search', 'badge-check', 'fingerprint', 'book-open', 'mail', 'moon', 'sun', 'arrow-right', 'arrow-up-right', 'external-link', 'lightbulb', 'circle-alert', 'chevron-down', 'chevron-left', 'chevron-right', 'pause', 'play', 'circle', 'star', 'code', 'database', 'terminal', 'network', 'chart-no-axes-combined', 'chart-pie', 'hand-heart', 'users', 'landmark', 'bike', 'beer', 'box', 'mountain-snow', 'server', 'puzzle', 'shield-check'] } }), caseSearch()],
   trailingSlash: 'always',
-  outDir: process.env.CONTENT_PREVIEW === 'drafts' ? './dist-drafts' : './dist',
+  outDir,
   server: { host: '127.0.0.1', port: 4321, allowedHosts },
 });

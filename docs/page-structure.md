@@ -16,11 +16,32 @@ background or work.
 | `/resources/` | `content/pages/resources.md` | Victim guidance, reporting and support, scam awareness, and reference reports |
 | `/articles/` | Compatibility redirect | Opens `/resources/` while no Articles page is configured and Resources is visible |
 | `/investigations/<chart>/<category>/` | Matching records in `content/cases/` | Case summaries reached from chart slices or legend links |
+| `/404.html` | `src/pages/404.astro` | Shared site layout with a page-not-found message and a return-home link |
+| `/sitemap-index.xml` | Official `@astrojs/sitemap` integration | Build-generated sitemap index using the selected data directory's `site.json` URL |
 
 The home page intentionally omits the full CV and chart tables. The underlying
 records remain reusable; adding detail to an employment file does not lengthen
 the landing page. The home page uses `description_short` and selected named
 blocks, while supporting pages use fuller content.
+
+## Missing pages and sitemap
+
+Every build includes a top-level `404.html`, which Cloudflare Pages uses for
+unknown URLs. It uses the normal theme, header, footer, and animation, and its
+home link works even when all content is still draft. No extra Markdown file is
+required in an existing external content directory.
+
+The official `@astrojs/sitemap` integration generates `sitemap-index.xml` and
+`sitemap-0.xml` during builds. The shared layout links to the index. The sitemap
+uses the `url` from the selected data directory's `site.json`; it does not require
+a separately hardcoded domain. Error pages, non-page assets, and the old
+Expertise/Articles URLs when they redirect are excluded. If Articles is restored
+as a real page, it is included automatically.
+
+Production sitemaps follow the production routes, so unpublished content is not
+listed. A draft build's sitemap stays in `dist-drafts/` alongside its draft pages.
+Adding a sitemap does not approve content or remove the current `noindex,
+nofollow` metadata. Search indexing remains a separate launch setting.
 
 ## Shared presentation
 

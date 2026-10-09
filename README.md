@@ -157,9 +157,16 @@ See [local development](docs/local-development.md) for persistent server notes.
 
 ## Public hosting later
 
-The intended host is Cloudflare Pages connected directly to the private GitHub
-repository. Use `npm run build` as its build command and `dist` as its output
-directory, with Node 24. GitHub Actions is not required. No Cloudflare project,
+Builds include a styled `404.html` for missing pages and an automatically generated
+`sitemap-index.xml` from the official `@astrojs/sitemap` integration. Sitemap URLs
+use the selected content directory's `site.json`, and the shared page layout links
+to the sitemap. See [missing pages and sitemap](docs/page-structure.md#missing-pages-and-sitemap).
+The current draft visibility and `noindex, nofollow` settings are unchanged.
+
+The intended host is Cloudflare Pages. Compile locally with the selected
+`SITE_DATA_DIR`, then upload `dist/` using Pages Direct Upload. The build needs
+Node 24 and access to both the builder and content directories; Cloudflare only
+needs the compiled output. GitHub Actions is not required. No Cloudflare project,
 DNS records, GitHub Actions workflows, or public site are created by this scaffold.
 
 ## Resume content

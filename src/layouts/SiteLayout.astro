@@ -12,6 +12,7 @@ type Props = {
   title: string;
   description: string;
   profile?: CollectionEntry<'profile'>;
+  socialImagePath?: string;
   article?: { published_on: string | null; updated_on: string | null };
 };
 const { title, description } = Astro.props;
@@ -26,7 +27,7 @@ const initials = profile?.data.blocks.initials ?? (profile ? profile.data.name.s
 const displayTitle = profile && !title.includes(name) ? `${title} | ${name}` : title;
 const currentPath = Astro.url.pathname;
 const canonical = new URL(currentPath, Astro.site!);
-const socialImage = new URL(openGraphPath(currentPath), Astro.site!);
+const socialImage = new URL(Astro.props.socialImagePath ?? openGraphPath(currentPath), Astro.site!);
 ---
 <!doctype html>
 <html lang="en" data-theme="dark">
@@ -37,6 +38,7 @@ const socialImage = new URL(openGraphPath(currentPath), Astro.site!);
     <meta name="robots" content="noindex, nofollow" />
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
+    <link rel="sitemap" href="/sitemap-index.xml" />
     <meta property="og:site_name" content={name} />
     <meta property="og:type" content={Astro.props.article ? 'article' : 'website'} />
     <meta property="og:title" content={displayTitle} />

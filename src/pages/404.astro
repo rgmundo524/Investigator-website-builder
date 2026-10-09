@@ -1,0 +1,18 @@
+---
+import { Icon } from 'astro-icon/components';
+import SiteLayout from '../layouts/SiteLayout.astro';
+---
+<SiteLayout
+  title="Page not found"
+  description="The page you are looking for could not be found. Return to the home page to continue exploring."
+  socialImagePath="/open-graph/home.png"
+>
+  <section class="container page-intro">
+    <p class="eyebrow">404 · Page not found</p>
+    <h1>This page could not be found.</h1>
+    <p class="page-lead">The link may be outdated, or the address may have been mistyped.</p>
+    <div class="actions">
+      <a class="button button-primary" href="/"><Icon name="lucide:house" aria-hidden="true" />Return home</a>
+    </div>
+  </section>
+</SiteLayout>
