@@ -31,27 +31,80 @@ to display. Keep confidential evidence and administrative records separately.
 | `chart`, `category` | One investigation group and one primary classification |
 | `subcategory` | A classification ID or ordered list from broad to specific; null/omitted becomes Unspecified |
 | `case_status` | `active`, `completed`, `on_hold`, or `unspecified` |
-| `opened_on`, `closed_on` | Quoted YYYY-MM-DD dates, or null; closing is for completed cases |
+| `opened_on`, `closed_on` | Quoted `YYYY`, `YYYY-MM`, or `YYYY-MM-DD`, or null; closing is for completed cases |
 | `role` | Your actual contribution or position in the engagement |
+| `experience` | Optional slug of the related employment record in `content/experience/` |
 | `networks` | Unique lowercase IDs such as `bitcoin`, `ethereum`, `tron`, `arbitrum` |
 | `assets` | Asset symbols or names such as BTC, ETH, USDT |
 | `jurisdictions` | Jurisdictions relevant to the matter, when appropriate to include |
 | `services` | `tracing`, `osint`, `forensic-report`, `expert-report`, `deposition`, `testimony` |
-| `metrics.wallets_reviewed` | Count of distinct wallet/address identifiers actually reviewed |
-| `metrics.transactions_reviewed` | Distinct transactions reviewed within the recorded scope |
+| `metrics.addresses_reviewed` | Count of distinct on-chain addresses reviewed; identify addresses by network |
+| `metrics.wallets_reviewed` | Count of distinct wallets identified and reviewed; do not treat each address as a wallet |
+| `metrics.transactions_reviewed` | Distinct transactions reviewed within the recorded scope; identify transactions by network and transaction ID |
 | `metrics.reported_loss_usd` | Reported loss for this matter in USD; not an independently proved loss or a recovery |
 | `metrics.assets_reviewed_usd` | USD asset value within the review scope, excluding repeated transfer turnover |
-| `metrics.valuation_date` | Date used for the USD valuation |
-| `metrics.amount_note` | Source, basis, and limitations of any recorded USD amount |
+| `metrics.reported_loss_valuation_date`, `metrics.reported_loss_note` | Exact valuation date and source/basis for the reported loss |
+| `metrics.assets_reviewed_valuation_date`, `metrics.assets_reviewed_note` | Exact valuation date and source/basis for assets reviewed |
+| `metrics.valuation_date`, `metrics.amount_note` | Optional shared fallback for both figures; existing files continue to work |
 | `links` | Appropriate public supporting sources, each with a label and URL |
 | `blocks.investigative_question` | Optional short question reused as a callout |
 | Markdown body | Evidence, approach, findings, deliverables, limitations, and follow-up |
 
-USD amounts require both a valuation date and an amount note. A known zero is
+Each USD amount requires both a valuation date and an amount note. Use the
+figure-specific fields when reported losses and reviewed assets use different
+dates or sources. Otherwise the shared `valuation_date` and `amount_note` apply
+to both figures. Financial valuation dates still require a full `YYYY-MM-DD` date;
+partial dates apply only to case opening and completion dates. A known zero is
 `0`; an unknown amount is `null`. Do not count the same loss in several records
 or turn repeated movements of the same funds into additional assets reviewed.
 If one engagement has several phases, update its record rather than counting
 those phases as new cases. Files may live in subfolders; discovery is recursive.
+
+### Historical dates without invented precision
+
+If only the year is known, use `opened_on: "2021"`. If the month is known, use
+`opened_on: "2021-07"`. Use `"2021-07-14"` only when that date is documented.
+The site displays these as 2021, Jul 2021, and Jul 14, 2021. All three contribute
+to the 2021 opening-year statistics. Leave a wholly unknown date as `null`.
+
+Validation compares date ranges. A case opened in `"2021-07"` cannot close in
+`"2021-06"`, but a case with only `"2021"` as its opening year may close in
+`"2021-06"` because the exact opening month is unknown. Impossible calendar dates
+such as `"2021-02-29"` are rejected.
+
+### Consistent classification paths
+
+Primary category IDs are defined by the chart. A chart may also define an optional
+`subcategory_paths` vocabulary. Each path includes the primary category followed
+by its increasingly specific subcategories:
+
+```yaml
+subcategory_paths:
+  - [pig-butchering, investment-platform, fake-exchange, withdrawal-fee]
+  - [pig-butchering, investment-platform, fake-exchange, account-freeze]
+  - [hacks, bridge-exploit]
+```
+
+For the first path, a case uses `category: pig-butchering` and
+`subcategory: [investment-platform, fake-exchange, withdrawal-fee]`. A shorter
+prefix such as `[investment-platform]` remains valid when that is all the
+classification supported by the evidence. Omit `subcategory_paths` or leave it
+empty to preserve the original behavior of discovering subcategories from cases.
+
+Use `case_networks` in the selected content directory's `site.json` to optionally
+restrict network IDs. For example, `"case_networks": ["bitcoin", "ethereum", "tron"]`
+rejects misspelled or alternate IDs. Without that setting, existing free-form
+network IDs continue to work. Choose `ethereum` instead of mixing it with `eth`.
+Do not change an existing case slug when correcting its classification.
+
+### A small first batch
+
+Start with five varied cases before importing the full history: an active matter,
+a completed matter, a multi-network trace, a report or testimony engagement, and
+a historical matter with incomplete dates or no publishable financial amount.
+Check that each is counted once, uses the intended categories, and distinguishes
+addresses, wallets, reported losses, and reviewed assets. Keep each record in
+draft until its public wording and supporting links have been reviewed.
 
 ## Derived statistics
 

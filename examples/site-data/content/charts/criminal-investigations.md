@@ -3,6 +3,14 @@ slug: criminal-investigations
 publication_status: draft
 title: Criminal investigations
 description_short: Types of cryptocurrency incidents investigated.
+subcategory_paths:
+  - [pig-butchering, investment-platform, fake-exchange, withdrawal-fee]
+  - [hacks, bridge-exploit, contract-vulnerability]
+  - [pig-butchering, investment-platform, fake-exchange, account-access]
+  - [phishing, wallet-drainer, token-approval]
+  - [other]
+  - [rip-deals]
+  - [account-takeover]
 categories:
 - id: pig-butchering
   label: Pig butchering

@@ -4,7 +4,7 @@ import { getCollection, getEntry } from 'astro:content';
 import { OGImageRoute } from 'astro-og-canvas';
 import { includeDrafts, isVisible, pageProfile } from '../../lib/content';
 import { visibleArticles } from '../../lib/articles';
-import { caseRoutes } from '../../lib/cases';
+import { caseRoutes, selectedCaseCharts, eligibleCases } from '../../lib/cases';
 import { openGraphKey, previewText } from '../../lib/open-graph';
 
 const require = createRequire(import.meta.url);
@@ -15,6 +15,7 @@ const [pageEntries, charts, cases] = await Promise.all([
 const articleEntries = pageEntries.some(({ id, data }) => id === 'articles' && data.section_order.includes('articles'))
   ? await getCollection('articles') : [];
 const profile = await pageProfile(await getEntry('pages', 'home'));
+const selectedCharts = selectedCaseCharts(pageEntries.find(({ id }) => id === 'casework'), charts, includeDrafts);
 const attribution = [profile?.data.name, site ? new URL(site).host : undefined].filter(Boolean).join(' · ');
 const pages: Record<string, { title: string; description: string }> = {
   home: { title: 'Site in preparation', description: 'A personal website in preparation.' },
@@ -23,7 +24,11 @@ for (const { id, data } of pageEntries) pages[id] = { title: data.title, descrip
 for (const { id, data } of visibleArticles(articleEntries, includeDrafts)) {
   pages[`articles/${id}`] = { title: data.title, description: data.description_short };
 }
-for (const { chart, category, url } of caseRoutes(charts, cases, includeDrafts)) {
+if (profile) pages.cv = { title: `Professional CV | ${profile.data.name}`, description: profile.data.description_short };
+for (const { id, data } of eligibleCases(selectedCharts, cases, includeDrafts)) {
+  pages[`cases/${id}`] = { title: data.title, description: data.description_short };
+}
+for (const { chart, category, url } of caseRoutes(selectedCharts, cases, includeDrafts)) {
   pages[openGraphKey(url)] = { title: category.label, description: `Explore ${category.label.toLowerCase()} case records in ${chart.data.title.toLowerCase()}.` };
 }
 

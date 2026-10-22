@@ -4,8 +4,17 @@ import type { ContentData } from '../content/schemas';
 export type CaseStudy = { id: string; data: ContentData<'cases'> };
 export type Chart = { id: string; data: ContentData<'charts'> };
 export type CaseKind = CaseStudy['data']['content_kind'];
+type CaseworkPage = { data: Pick<ContentData<'pages'>, 'publication_status' | 'charts' | 'section_order'> };
 export const statusLabels = { active: 'Active', completed: 'Completed', on_hold: 'On hold', unspecified: 'Status not recorded' };
 export const readable = (value: string) => value.split('-').map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+export const caseUrl = (id: string) => `/cases/${id}/`;
+
+// Page selection is part of publication, shared by routes and the search index.
+export function selectedCaseCharts<C extends Chart>(page: CaseworkPage | undefined, charts: C[], includeDrafts = false): C[] {
+  if (!page || (!includeDrafts && page.data.publication_status !== 'published') || !page.data.section_order.includes('charts')) return [];
+  const ids = new Set(page.data.charts);
+  return charts.filter(({ id, data }) => ids.has(id) && (includeDrafts || data.publication_status === 'published'));
+}
 
 export const subcategoryPath = (study: CaseStudy): string[] => {
   const value = study.data.subcategory;

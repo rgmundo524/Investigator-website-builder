@@ -14,9 +14,10 @@ const showSocial = social?.enabled && (social.links.length > 0 || social.email |
   {services.length > 0 && <section aria-labelledby="contact-services-heading">
     <div class="section-heading"><h2 id="contact-services-heading">{entry.data.services_heading}</h2></div>
     <div class="contact-service-grid">
-      {services.map((service) => <article class="contact-card contact-service" id={`contact-service-${service.id}`} aria-labelledby={`contact-service-${service.id}-heading`}>
+      {services.map((service) => <article class:list={['contact-card', 'contact-service', { 'contact-service-primary': service.primary }]} id={`contact-service-${service.id}`} aria-labelledby={`contact-service-${service.id}-heading`}>
         <Icon name="lucide:briefcase-business" class="contact-card-icon" aria-hidden="true" />
         <h3 id={`contact-service-${service.id}-heading`}>{service.name}</h3>
+        {service.audience && <p class="contact-audience">{service.audience}</p>}
         <p class="contact-description">{service.description}</p>
         {(service.website || service.email || service.phone) && <dl class="contact-details">
           {service.website && <div><dt>Website</dt><dd><a href={service.website.url}>{service.website.label}</a></dd></div>}

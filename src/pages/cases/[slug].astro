@@ -1,0 +1,35 @@
+---
+import { getCollection, getEntry } from 'astro:content';
+import type { InferGetStaticPropsType } from 'astro';
+import SiteLayout from '../../layouts/SiteLayout.astro';
+import CaseRecord from '../../components/CaseRecord.astro';
+import { eligibleCases, selectedCaseCharts } from '../../lib/cases';
+import { categoryUrl } from '../../lib/charts';
+import { includeDrafts } from '../../lib/content';
+
+export async function getStaticPaths() {
+  const [page, charts, studies] = await Promise.all([
+    getEntry('pages', 'casework'), getCollection('charts'), getCollection('cases'),
+  ]);
+  const visibleCharts = selectedCaseCharts(page, charts, includeDrafts);
+  return eligibleCases(visibleCharts, studies, includeDrafts).map((entry) => ({
+    params: { slug: entry.id },
+    props: { entry, chart: visibleCharts.find(({ id }) => id === entry.data.chart)! },
+  }));
+}
+type Props = InferGetStaticPropsType<typeof getStaticPaths>;
+const { entry, chart }: Props = Astro.props;
+const category = chart.data.categories.find(({ id }) => id === entry.data.category)!;
+---
+<SiteLayout title={entry.data.title} description={entry.data.description_short}>
+  <header class="container page-intro">
+    <p class="back-link"><a href="/casework/">← Back to casework</a></p>
+    <p class="eyebrow">{chart.data.title} · {category.label}</p>
+    <h1 id={`${entry.id}-title`}>{entry.data.title}</h1>
+    <p class="page-lead">{entry.data.description_short}</p>
+  </header>
+  <section class="container content-section">
+    <CaseRecord entry={entry} showHeading={false} />
+    <p class="back-link"><a href={categoryUrl(chart.id, category.id)}>More {category.label.toLowerCase()} cases</a></p>
+  </section>
+</SiteLayout>

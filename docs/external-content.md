@@ -70,13 +70,13 @@ new destination. The command exports the currently selected source.
 
 ```nix
 env = {
-  SITE_DATA_DIR = lib.mkDefault ".";
+  SITE_DATA_DIR = lib.mkDefault "examples/site-data";
   TAILSCALE_HOSTNAME = lib.mkDefault "";
 };
 ```
 
-`.` keeps using the data in this repository. Change the quoted default to your
-content directory, or put a personal override in the already-ignored
+The generic starter is the default. Set `.` explicitly to use the retained legacy
+personal files, or put your external content path in the already-ignored
 `devenv.local.nix`:
 
 ```nix
@@ -123,7 +123,7 @@ commands still accept ordinary inherited process environment variables.
 
 A nonempty invalid directory or invalid `site.json` stops the command; it never
 silently falls back to bundled personal content. Blank or unset `SITE_DATA_DIR`
-retains the repository default for direct npm usage. Use an absolute path instead
+selects `examples/site-data` for direct npm usage. Use an absolute path instead
 of a literal `~` inside a quoted Nix setting.
 
 Exit and re-enter the shell after changing the selected directory. Restart the
@@ -228,7 +228,7 @@ Only upload the intended output directory when hosting later.
 
 The existing personal content is preserved in this repository until its private
 replacement is stored and verified. After that migration, it can be removed from
-the current builder tree and the generic starter can become the default. Removing
+the current builder tree. The generic starter is already the default. Removing
 files does not erase earlier public Git commits, clones, or forks; changing public
 history is a separate operation. This change does not claim to erase that history.
 
@@ -236,3 +236,10 @@ For Cloudflare later, the build machine needs both the public builder checkout
 and the selected private content checkout (or a local build can upload `dist/`).
 Selecting a local directory alone does not grant Cloudflare access to a private
 repository. The present workflow stays local with devenv.
+
+## Default source and migration
+
+The default is now `examples/site-data`, not the legacy personal files in the builder root.
+Always select your personal source explicitly, preferably in `devenv.local.nix`.
+Use `SITE_DATA_DIR=.` only when exporting the retained legacy content. It is not the default.
+No external content directory is rewritten by a code update. See [publication readiness](site-readiness.md).

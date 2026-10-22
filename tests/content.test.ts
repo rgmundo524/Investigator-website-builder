@@ -79,7 +79,7 @@ test('external site directories resolve consistently and invalid configuration n
     assert.equal(a.url, 'https://person-a.example');
     assert.notEqual(a.cacheKey, b.cacheKey);
     assert.equal(resolveSiteData(a.dataDir).cacheKey, a.cacheKey);
-    assert.equal(resolveSiteData('', builderRoot).dataDir, builderRoot.replace(/\/$/, ''));
+    assert.equal(resolveSiteData('', builderRoot).dataDir, path.join(builderRoot, 'examples/site-data'));
     assert.throws(() => resolveSiteData('missing', root), /SITE_DATA_DIR is not a directory/);
     await rm(path.join(root, 'person-a/content'), { recursive: true });
     assert.throws(() => resolveSiteData('person-a', root), /Missing content directory/);
@@ -327,8 +327,8 @@ test('search respects case visibility, exact anchors, and per-case filters witho
     if (record.collection === 'cases') {
       record.data.editorial_note = 'EDITORIAL_SECRET_SENTINEL';
       record.data.blocks.unused_private_block = 'UNUSED_BLOCK_SENTINEL';
-      const found = previews.find(({ url }) => url.endsWith(`#${record.data.slug}`))!;
-      assert.equal(found.url, `${categoryUrl(record.data.chart, record.data.category)}#${record.data.slug}`);
+      const found = previews.find(({ url }) => url.endsWith(`/cases/${record.data.slug}/`))!;
+      assert.equal(found.url, `/cases/${record.data.slug}/`);
       assert.deepEqual(found.filters.Network, record.data.networks.length ? record.data.networks.map((value) => value.split('-').map((part) => part[0].toUpperCase() + part.slice(1)).join(' ')) : ['Not recorded']);
     }
   }
@@ -343,7 +343,7 @@ test('search respects case visibility, exact anchors, and per-case filters witho
   assert.equal(caseSearchRecords(publicRecords, false).length, 1);
   assert.deepEqual(caseSearchRecords(publicRecords, false)[0].filters.Dataset, ['Case studies']);
   study.data.category = publicRecords.filter((record) => record.collection === 'charts').find(({ data }) => data.slug === study.data.chart)!.data.categories.find(({ id }) => id !== study.data.category)!.id;
-  assert.equal(caseSearchRecords(publicRecords, false)[0].url, `${categoryUrl(study.data.chart, study.data.category)}#${study.data.slug}`);
+  assert.equal(caseSearchRecords(publicRecords, false)[0].url, `/cases/${study.data.slug}/`);
   publicRecords.splice(publicRecords.indexOf(study), 1);
   assert.equal(caseSearchRecords(publicRecords, false).length, 0);
 });
@@ -592,10 +592,10 @@ test('example Markdown subcategories appear in search and remain isolated to the
   assert.deepEqual(hacks.subcategories.map(({ id, count }) => [id, count]), [['bridge-exploit', 1], ['protocol-exploit', 1]]);
   const divorce = data.groups[1].categories.find(({ id }) => id === 'divorce')!;
   assert.deepEqual(divorce.subcategories.map(({ id }) => id), ['asset-disclosure', 'historical-holdings']);
-  const found = caseSearchRecords(records, true).find(({ url }) => url.endsWith('#case-012'))!;
+  const found = caseSearchRecords(records, true).find(({ url }) => url.endsWith('/cases/case-012/'))!;
   assert.deepEqual(found.filters.CasePath, classificationKeys('criminal-investigations', ['hacks', 'bridge-exploit']));
   assert.match(found.content, /Bridge Exploit/);
-  const deepSearch = caseSearchRecords(records, true).find(({ url }) => url.endsWith('#case-011'))!;
+  const deepSearch = caseSearchRecords(records, true).find(({ url }) => url.endsWith('/cases/case-011/'))!;
   assert.deepEqual(deepSearch.filters.CasePath, classificationKeys('criminal-investigations', ['pig-butchering', 'investment-platform', 'fake-exchange', 'withdrawal-fee']));
   const criminal = caseSunburst(data.groups[0]);
   assert.equal(sunburstSelection(criminal, 'criminal-investigations/pig-butchering').caseIds.size, 2);
@@ -611,7 +611,7 @@ test('Pagefind path filters select exactly the same descendants as each sunburst
   for (const chart of caseVisuals(charts, studies, 'example', true).groups) {
     for (const node of sunburstNodes(caseSunburst(chart))) {
       const matches = search.filter(({ filters }) => filters.Investigation.includes(chart.title) && filters.CasePath.includes(node.id));
-      assert.deepEqual(matches.map(({ url }) => url.split('#')[1]).sort(), [...node.caseIds].sort());
+      assert.deepEqual(matches.map(({ url }) => url.split('/').filter(Boolean).at(-1)).sort(), [...node.caseIds].sort());
     }
   }
   const full = classificationKeys('criminal', ['fraud', 'platform', 'exchange']);
@@ -706,7 +706,7 @@ test('pie groups and tree count each case once and follow category changes witho
   const after = caseVisuals([makeChart()], records, 'case_study');
   assert.deepEqual(after.groups[0].categories.map(({ count }) => count), [1, 2]);
   assert.deepEqual(after.tree.children![0].children!.map(({ count }) => count), [1, 2]);
-  assert.equal(descendantCases(after.tree).find(({ id }) => id === 'case:two')?.url, '/investigations/example/other/#two');
+  assert.equal(descendantCases(after.tree).find(({ id }) => id === 'case:two')?.url, '/cases/two/');
   check(after.tree);
 });
 
@@ -724,7 +724,7 @@ test('case visuals separate examples, drafts, and hidden investigations and proj
   assert.equal(published.groups.length, 1);
   const leaf = descendantCases(published.tree)[0];
   assert.equal(leaf.label, 'Case 001');
-  assert.equal(leaf.url, '/investigations/example/fraud/#public-case');
+  assert.equal(leaf.url, '/cases/public-case/');
   assert.match(leaf.tooltip, /A \[literal\] title\nScope <detail>/);
   assert.match(leaf.tooltip, /Active/);
   assert.match(leaf.tooltip, /Networks: Bitcoin/);

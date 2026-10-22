@@ -48,9 +48,10 @@ nofollow` metadata. Search indexing remains a separate launch setting.
 - `src/layouts/SiteLayout.astro` owns the header, navigation, footer, title, and
   description. All routes use it. The compact navigation header stays at the top
   while scrolling, with a blurred background. Its measured height reserves room
-  for anchor navigation and keyboard focus as links wrap. On short screens the
-  header is capped at half the viewport and can scroll internally; print uses
-  normal document flow.
+  for anchor navigation and keyboard focus. At narrow widths, a Menu button
+  expands the navigation; Escape closes it. Without JavaScript the full links
+  remain visible. The expanded header can scroll internally; print uses normal
+  document flow.
 - `src/styles/global.css` contains the shared navy, burgundy, white, typography,
   spacing, and responsive layout rules.
 - `src/pages/index.astro` renders the curated landing page.
@@ -267,6 +268,14 @@ If storage is blocked, the toggle still works on the current page. The single
 implementation is `src/scripts/theme-init.js`, inlined by the shared layout.
 
 The toggle retains a 44-pixel touch target. It and the Contact button stay together
-on narrow screens, above the wrapping navigation links. Both color modes use the
+on narrow screens, alongside the Menu button. Both color modes use the
 shared CSS variables, including chart surfaces, tables, notices, and keyboard
 focus styles. No external dependency is used for theme state.
+
+## Navigation and case detail updates
+
+At widths up to 1040px, the header uses a Menu disclosure when JavaScript is available.
+Escape closes it and restores focus; without JavaScript all navigation links remain available.
+Work History has jumps to its populated sections. The case relationship map starts collapsed.
+Each case now has a permanent `/cases/{slug}/` URL; category pages provide linked summaries.
+`/cv/` provides a printable view of the same visible professional content.

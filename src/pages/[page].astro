@@ -1,5 +1,5 @@
 ---
-import { getCollection, render } from 'astro:content';
+import { getCollection, getEntry, render } from 'astro:content';
 import type { InferGetStaticPropsType } from 'astro';
 import SiteLayout from '../layouts/SiteLayout.astro';
 import ContentEntry from '../components/ContentEntry.astro';
@@ -31,6 +31,7 @@ const { page }: Props = Astro.props;
 if (Astro.params.page === 'expertise') return Astro.redirect('/work-history/#section-expertise', 301);
 if (Astro.params.page === 'articles' && page.id === 'resources') return Astro.redirect('/resources/', 301);
 const profile = await pageProfile(page);
+const cvAvailable = Boolean(await pageProfile(await getEntry('pages', 'home')));
 const contact = await pageContact(page);
 const { Content: Intro } = await render(contact ?? page);
 const biography = page.data.section_order.includes('biography') && profile ? await render(profile) : undefined;
@@ -41,12 +42,21 @@ const credentials = page.data.credentials_source === 'all' ? await getCollection
 const sectionNames = ['experience', 'expertise', 'projects', 'education', 'interests', 'callouts'] as const;
 const sections = await Promise.all(sectionNames.map(async (name) => ({ name, entries: name === 'experience' ? experience : await selected(name, page.data[name]) })));
 const labels = { experience: 'Professional experience', expertise: 'Areas of expertise', projects: 'Selected projects', credentials: 'Certifications & training', education: 'Education', interests: 'Outside work', callouts: 'Approach' };
+const workHistoryLinks = page.id === 'work-history' ? page.data.section_order.flatMap((name) => {
+  if (name === 'biography') return Bio ? [{ href: '#section-biography', label: page.data.blocks.biography_link_label ?? 'Background' }] : [];
+  const section = sections.find((section) => section.name === name);
+  if (!section?.entries.length) return [];
+  return [{ href: `#section-${name}`, label: page.data.blocks[`${name}_link_label`] ?? (name === 'experience' ? 'Timeline and roles' : name === 'expertise' ? 'Expertise' : labels[section.name]) }];
+}) : [];
 ---
 <SiteLayout title={page.data.title} description={page.data.description_short} profile={profile}>
   <header class="container page-intro">
     <p class="eyebrow">{page.data.blocks.eyebrow ?? profile?.data.name ?? page.data.title}</p>
     <h1>{page.data.title}</h1>
     <div class="page-lead"><Intro /></div>
+    {page.id === 'work-history' && profile?.data.blocks.professional_focus && <p class="professional-focus">{profile.data.blocks.professional_focus}</p>}
+    {workHistoryLinks.length > 0 && <nav class="section-jumps" aria-label="On this page">{workHistoryLinks.map(({ href, label }) => <a href={href}>{label}</a>)}</nav>}
+    {cvAvailable && (page.id === 'work-history' || page.id === 'contact') && <p class="meta"><a href="/cv/">View professional CV · print or save as PDF</a></p>}
   </header>
   {contact && <ContactCards entry={contact} />}
   {page.data.section_order.map((name) => {

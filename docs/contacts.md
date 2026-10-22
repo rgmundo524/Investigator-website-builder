@@ -122,3 +122,10 @@ Checked September 7, 2026:
 The LinkedIn account comes from the supplied resume. GitHub uses the account
 provided for this project. No additional personal accounts or email addresses
 were inferred. Start another directory from `templates/contacts.md` if needed.
+
+## Clarifying the destination
+
+Each service can set an optional `audience` sentence and `primary: true` to
+highlight the preferred route. At most one enabled service can be primary.
+These fields do not change any destination or booking account. When both
+organizations are offered, explain which enquiries each is intended to handle.

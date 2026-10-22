@@ -2,14 +2,14 @@
 import { getCollection, getEntry } from 'astro:content';
 import type { InferGetStaticPropsType } from 'astro';
 import SiteLayout from '../../../layouts/SiteLayout.astro';
-import CaseRecord from '../../../components/CaseRecord.astro';
-import { caseRoutes, caseSubcategories, subcategoryAnchor } from '../../../lib/cases';
+import { Icon } from 'astro-icon/components';
+import { caseRoutes, caseSubcategories, caseUrl, selectedCaseCharts, statusLabels, subcategoryAnchor } from '../../../lib/cases';
 import { includeDrafts, isVisible } from '../../../lib/content';
 import { categoryUrl, formatShare, summarizeCases } from '../../../lib/charts';
 
 export async function getStaticPaths() {
-  const [charts, studies] = await Promise.all([getCollection('charts'), getCollection('cases')]);
-  return caseRoutes(charts, studies, includeDrafts).map(({ chart, category, datasets }) => ({
+  const [charts, studies, page] = await Promise.all([getCollection('charts'), getCollection('cases'), getEntry('pages', 'casework')]);
+  return caseRoutes(selectedCaseCharts(page, charts, includeDrafts), studies, includeDrafts).map(({ chart, category, datasets }) => ({
     params: { chart: chart.id, category: category.id }, props: { chart, category, datasets },
   }));
 }
@@ -36,7 +36,12 @@ const back = casework && isVisible(casework) ? { url: '/casework/#section-casewo
       {studies.length === 0 && <p>No {kind === 'example' ? 'examples' : 'case records'} have been added to this category yet.</p>}
       {caseSubcategories(studies).map((subcategory) => <section class="case-subcategory" id={subcategoryAnchor(kind, subcategory.id)} aria-labelledby={`${subcategoryAnchor(kind, subcategory.id)}-title`}>
         <h3 class="case-subcategory-heading" id={`${subcategoryAnchor(kind, subcategory.id)}-title`}>{subcategory.label} · {subcategory.count} {subcategory.count === 1 ? 'case' : 'cases'}</h3>
-        {subcategory.studies.map((entry) => <CaseRecord entry={entry} heading="h4" />)}
+        {subcategory.studies.map((entry) => <article class="case-study case-summary" id={entry.id} aria-labelledby={`${entry.id}-title`}>
+          <h4 id={`${entry.id}-title`}><a href={caseUrl(entry.id)}>{entry.data.title}</a></h4>
+          <p class="lead">{entry.data.description_short}</p>
+          <p class="meta">{[entry.data.role, statusLabels[entry.data.case_status]].filter(Boolean).join(' · ')}</p>
+          <a class="text-link" href={caseUrl(entry.id)}>Read case details <Icon name="lucide:arrow-up-right" aria-hidden="true" /></a>
+        </article>)}
       </section>)}
     </section>;
   })}

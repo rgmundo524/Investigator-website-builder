@@ -65,6 +65,11 @@ li + li { margin-top: .4rem; }
 .header-actions { display: flex; align-items: center; gap: .6rem; flex-shrink: 0; }
 .header-actions .header-contact { font-size: .875rem; min-height: 2.75rem; padding: .55rem .85rem; border-radius: .2rem; white-space: nowrap; }
 .header-contact[aria-current='page'] { outline: 1px solid var(--accent); outline-offset: 3px; }
+.navigation-toggle { align-items: center; justify-content: center; gap: .5rem; min-height: 2.75rem; padding: .55rem .75rem; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: .2rem; font-size: .875rem; }
+.navigation-toggle:not([hidden]) { display: inline-flex; }
+.navigation-toggle[aria-expanded='true'] { border-color: var(--accent); }
+.navigation-toggle-icon { display: grid; gap: 3px; width: 1rem; }
+.navigation-toggle-icon span { display: block; height: 1px; background: currentColor; }
 .eyebrow { color: var(--accent-text); font-size: .875rem; font-weight: 600; line-height: 1.5; letter-spacing: .09em; text-transform: uppercase; margin-bottom: 1.3rem; }
 .hero { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(16rem, 1fr); align-items: center; gap: 4rem; padding-block: 5.75rem 4.5rem; }
 .hero-copy { max-width: 43rem; }
@@ -166,6 +171,12 @@ li + li { margin-top: .4rem; }
 .page-intro h1 { font-size: clamp(2.8rem, 5.3vw, 4.5rem); }
 .page-lead { max-width: 46rem; color: var(--muted); font-size: 1.125rem; }
 .page-lead p:last-child { margin-bottom: 0; }
+.professional-focus { max-width: 46rem; margin: 1.25rem 0 0; font-weight: 600; }
+.section-jumps { display: flex; flex-wrap: wrap; gap: .5rem .75rem; margin-top: 1.5rem; }
+.section-jumps a { display: inline-flex; align-items: center; min-height: 2.75rem; padding: .5rem .85rem; border: 1px solid var(--line); border-radius: .25rem; font-size: .9375rem; text-decoration: none; }
+.section-jumps a:hover { background: var(--glass-surface); }
+.contact-audience { color: var(--accent-text); font-weight: 600; }
+.contact-service-primary { border-width: 2px; border-color: var(--accent); }
 .bio-section { display: grid; grid-template-columns: 1fr 1.65fr; gap: 4rem; padding-top: 4rem; }
 .reading-copy { max-width: 46rem; }
 .content-section { padding-block: 3.5rem 1rem; scroll-margin-top: 2rem; }
@@ -265,8 +276,16 @@ li + li { margin-top: .4rem; }
   .header-inner { flex-wrap: wrap; gap: .7rem 1.5rem; }
   .site-nav { order: 3; width: 100%; margin-left: 0; }
   .header-actions { margin-left: auto; }
+  .site-header[data-navigation='open'] { max-height: 75vh; max-height: 75dvh; }
+  .site-header[data-navigation] .header-inner { gap: .65rem 1rem; padding-block: .75rem; }
+  .site-header[data-navigation] .site-nav { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .25rem .75rem; padding-top: .5rem; border-top: 1px solid var(--line); }
+  .site-header[data-navigation] .site-nav a { min-height: 2.75rem; padding: .55rem .5rem; }
   .hero { gap: 2.5rem; }
   .featured-inner { gap: 3rem; }
+}
+@media (max-width: 520px) {
+  .site-header[data-navigation] .wordmark:has(.monogram) > span:last-child { display: none; }
+  .site-header[data-navigation] .header-actions { gap: .4rem; }
 }
 @media (max-width: 760px) {
   .hero { grid-template-columns: 1fr; padding-block: 3.25rem 2.5rem; gap: 2.5rem; }
@@ -389,6 +408,9 @@ body:has(.particle-toggle:not([hidden])) .site-footer { padding-bottom: calc(4re
 .stat-grid dt { color: var(--muted); font-size: .875rem; }
 .stat-grid dd { margin: .35rem 0 0; font-family: var(--serif); font-size: 2.5rem; line-height: 1.15; }
 .statistics-details, .example-dataset { margin-block: 2rem; border-block: 1px solid var(--line); padding-block: 1rem; }
+.case-map-disclosure { margin-block: 2rem; border-block: 1px solid var(--line); padding-block: 1rem; }
+.case-map-disclosure > summary { color: var(--accent-text); font-weight: 600; cursor: pointer; padding: .65rem 0; }
+.case-map-disclosure .case-explorer { margin-block: 1rem; }
 .statistics-details > summary, .example-dataset > summary { color: var(--accent-text); font-weight: 600; cursor: pointer; padding: .65rem 0; }
 .statistics-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 2rem; padding-block: 1.75rem; }
 .data-table { width: 100%; border-collapse: collapse; font-size: .875rem; }

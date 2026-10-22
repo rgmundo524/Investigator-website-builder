@@ -1,5 +1,6 @@
 import { categoryUrl, formatShare, summarizeCases } from './charts';
-import { subcategoryPath, caseSubcategories, chartCategories, eligibleCases, readable, statusLabels, subcategoryAnchor, type Chart, type CaseStudy, type CaseKind } from './cases';
+import { subcategoryPath, caseSubcategories, caseUrl, chartCategories, eligibleCases, readable, statusLabels, subcategoryAnchor, type Chart, type CaseStudy, type CaseKind } from './cases';
+import { formatCaseDate } from './case-dates';
 
 const palette = [
   ['#8b3049', '#c94c44'], ['#386b94', '#91c9ee'], ['#30786f', '#8bd7c6'],
@@ -37,7 +38,7 @@ export function caseVisuals(charts: Chart[], studies: CaseStudy[], kind: CaseKin
     const cases = records.filter(({ data }) => data.chart === chart.id).map((study) => ({
       id: study.id, title: study.data.title, description: study.data.description_short,
       path: [study.data.category, ...subcategoryPath(study)],
-      url: `${categoryUrl(study.data.chart, study.data.category)}#${study.id}`,
+      url: caseUrl(study.id),
     }));
     return { id: chart.id, title: chart.data.title, kind, total: summary.total ?? 0, light, dark, categories, cases };
   });
@@ -51,10 +52,10 @@ export function caseVisuals(charts: Chart[], studies: CaseStudy[], kind: CaseKin
         children: records.filter(({ data }) => data.chart === group.id && data.category === category.id).map(({ id, data }) => ({
           id: `case:${id}`, label: data.blocks.chart_label ?? id, title: data.title,
           type: 'case', count: 1, value: 1, light: category.light, dark: category.dark,
-          url: `${categoryUrl(data.chart, data.category)}#${id}`,
+          url: caseUrl(id),
           tooltip: [data.title, data.description_short, statusLabels[data.case_status],
             `Classification: ${subcategoryPath({ id, data }).map(readable).join(' → ')}`,
-            `Opened: ${data.opened_on ?? 'Not recorded'}`, data.closed_on ? `Completed: ${data.closed_on}` : '',
+            `Opened: ${formatCaseDate(data.opened_on)}`, data.closed_on ? `Completed: ${formatCaseDate(data.closed_on)}` : '',
             data.networks.length ? `Networks: ${data.networks.map(readable).join(', ')}` : '',
             'Open case details.'].filter(Boolean).join('\n'),
         })),

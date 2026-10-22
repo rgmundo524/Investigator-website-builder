@@ -4,9 +4,10 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export const builderRoot = fileURLToPath(new URL('../', import.meta.url));
+export const defaultDataDirectory = 'examples/site-data';
 
 export function resolveSiteData(value = process.env.SITE_DATA_DIR, root = builderRoot) {
-  const selected = path.resolve(root, value?.trim() || '.');
+  const selected = path.resolve(root, value?.trim() || defaultDataDirectory);
   if (!existsSync(selected) || !statSync(selected).isDirectory()) {
     throw new Error(`SITE_DATA_DIR is not a directory: ${selected}`);
   }
@@ -19,8 +20,17 @@ export function resolveSiteData(value = process.env.SITE_DATA_DIR, root = builde
   if (!existsSync(configFile)) throw new Error(`Missing site settings: ${configFile}`);
   const config = JSON.parse(readFileSync(configFile, 'utf8'));
   if (!config || config.version !== 1 || typeof config.url !== 'string'
-    || Object.keys(config).some((key) => !['version', 'url'].includes(key))) {
-    throw new Error(`${configFile}: expected { "version": 1, "url": "https://your-domain.example" }.`);
+    || Object.keys(config).some((key) => !['version', 'url', 'indexing', 'case_networks'].includes(key))) {
+    throw new Error(`${configFile}: expected version, url, and optional indexing/case_networks settings.`);
+  }
+  if (config.indexing !== undefined && typeof config.indexing !== 'boolean') {
+    throw new Error(`${configFile}: indexing must be true or false.`);
+  }
+  if (config.case_networks !== undefined && (!Array.isArray(config.case_networks)
+    || !config.case_networks.length
+    || config.case_networks.some((id: unknown) => typeof id !== 'string' || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(id))
+    || new Set(config.case_networks).size !== config.case_networks.length)) {
+    throw new Error(`${configFile}: case_networks must contain unique lowercase hyphenated network IDs.`);
   }
   let url: URL;
   try { url = new URL(config.url); }
@@ -35,5 +45,6 @@ export function resolveSiteData(value = process.env.SITE_DATA_DIR, root = builde
   }
   // Different sources must not reuse identical Markdown digests with old file paths.
   const cacheKey = createHash('sha256').update(dataDir).digest('hex').slice(0, 16);
-  return { dataDir, contentDir, assetsDir: path.join(dataDir, 'assets'), publicDir: path.join(dataDir, 'public'), url: url.origin, cacheKey };
+  return { dataDir, contentDir, assetsDir: path.join(dataDir, 'assets'), publicDir: path.join(dataDir, 'public'), url: url.origin, cacheKey,
+    indexing: config.indexing === true, caseNetworks: config.case_networks as string[] | undefined };
 }

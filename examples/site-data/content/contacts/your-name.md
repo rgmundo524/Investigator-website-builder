@@ -7,6 +7,7 @@ services_heading: Services
 services:
   - id: example-service-a
     name: Example investigation service
+    audience: Individual enquiries and investigation support
     description: Replace with the name and description of a service you represent.
     display_order: 10
     enabled: true
@@ -20,6 +21,7 @@ services:
     phone: null
   - id: example-service-b
     name: Example litigation support service
+    audience: Attorneys and litigation teams
     description: Replace with another organization or remove this card.
     display_order: 20
     enabled: true

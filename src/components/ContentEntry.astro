@@ -4,6 +4,7 @@ import { Icon } from 'astro-icon/components';
 import { formatMonth, formatPeriods } from '../lib/content';
 import { isCurrentPosition } from '../lib/experience';
 import type { ImageMetadata } from 'astro';
+import { formatCaseDate } from '../lib/case-dates';
 
 type Props = {
   entry: CollectionEntry<'experience' | 'education' | 'credentials' | 'expertise' | 'projects' | 'interests' | 'callouts'>;
@@ -34,6 +35,7 @@ const links = [...credentialLinks, ...data.links].filter((link, index, items) =>
     <Heading>{title}</Heading>
     {entry.collection === 'experience' && <p class="entry-organization">{entry.data.organization}</p>}
     {entry.collection === 'credentials' && <p class="meta">{!grouped && `${entry.data.issuer} · `}{entry.data.issued_year} · {entry.data.credential_type}</p>}
+    {entry.collection === 'credentials' && entry.data.expires_on && <p class="meta">{entry.data.expires_on < new Date().toISOString().slice(0, 10) ? 'Expired' : 'Expires'} <time datetime={entry.data.expires_on}>{formatCaseDate(entry.data.expires_on)}</time></p>}
     {entry.collection === 'education' && <p class="meta">{entry.data.institution} · {formatMonth(entry.data.start)} to {entry.data.end ? formatMonth(entry.data.end) : 'Present'}{entry.data.credential_type === 'attendance' ? ' · Attendance' : entry.data.completion_status === 'completed' ? '' : ' · Studies'}</p>}
     {entry.collection === 'projects' && <p class="meta">{entry.data.contribution}</p>}
   </header>

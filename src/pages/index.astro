@@ -27,6 +27,7 @@ const hasPage = (id: string) => visiblePages.some((entry) => entry.id === id);
         <div class="actions">
           {hasPage('casework') && <a class="button button-primary" href="/casework/">Explore my work <Icon name="lucide:arrow-up-right" aria-hidden="true" /></a>}
           {hasPage('work-history') && <a class="text-link" href="/work-history/">Work history <Icon name="lucide:arrow-right" aria-hidden="true" /></a>}
+          <a class="text-link" href="/cv/">Professional CV <Icon name="lucide:arrow-right" aria-hidden="true" /></a>
         </div>
       </div>
       <Portrait profile={profile} />

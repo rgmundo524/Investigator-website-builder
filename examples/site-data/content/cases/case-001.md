@@ -13,8 +13,8 @@ subcategory:
   - withdrawal-fee
 content_kind: example
 case_status: completed
-opened_on: "2025-06-01"
-closed_on: "2025-09-01"
+opened_on: "2025-06"
+closed_on: "2025-09"
 role: Example investigator role
 networks:
   - ethereum
@@ -25,7 +25,8 @@ services:
   - tracing
   - forensic-report
 metrics:
-  wallets_reviewed: 12
+  addresses_reviewed: 12
+  wallets_reviewed: null
   transactions_reviewed: 150
   reported_loss_usd: 25000
   assets_reviewed_usd: null

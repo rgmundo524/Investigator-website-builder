@@ -7,6 +7,7 @@ services_heading: Investigation services
 services:
   - id: go-crypto
     name: Go-Crypto
+    audience: Fraud education and reporting support
     display_order: 10
     enabled: true
     description: >-
@@ -28,6 +29,7 @@ services:
       number: '+19037055802'
   - id: cipherblade
     name: CipherBlade
+    audience: Blockchain investigations and litigation support
     display_order: 20
     enabled: true
     description: >-

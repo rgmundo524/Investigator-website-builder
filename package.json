@@ -21,9 +21,11 @@
     "prepreview:drafts": "node scripts/ensure-dependencies.mjs",
     "prebuild:drafts": "node scripts/ensure-dependencies.mjs",
     "pretest": "node scripts/ensure-dependencies.mjs",
-    "test": "node --import tsx --test tests/content.test.ts",
+    "test": "node --import tsx --test tests/*.test.ts",
     "precontent:export": "node scripts/ensure-dependencies.mjs",
-    "content:export": "node --import tsx scripts/export-content.ts"
+    "content:export": "node --import tsx scripts/export-content.ts",
+    "precontent:upgrade": "node scripts/ensure-dependencies.mjs",
+    "content:upgrade": "node --import tsx scripts/upgrade-content.ts"
   },
   "dependencies": {
     "@amcharts/amcharts5": "5.20.5",
@@ -39,7 +41,8 @@
     "astro-og-canvas": "0.13.1",
     "embla-carousel": "8.6.0",
     "embla-carousel-autoplay": "8.6.0",
-    "pagefind": "1.5.2"
+    "pagefind": "1.5.2",
+    "satteri": "0.10.5"
   },
   "devDependencies": {
     "@astrojs/check": "0.9.10",

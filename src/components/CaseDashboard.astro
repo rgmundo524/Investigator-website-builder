@@ -19,7 +19,7 @@ const exampleVisuals = actual.length && examples.length ? caseVisuals(charts, ex
 {actual.length > 0 && examples.length > 0 && <details class="example-dataset"><summary>Explore the example dataset ({examples.length} records)</summary><CaseDataset charts={charts} studies={examples} kind="example" /></details>}
 
 <CaseSearch charts={charts} />
-<CaseExplorer data={{ kind: primaryKind, total: primary.total, tree: primary.tree }} />
+<details class="case-map-disclosure"><summary>Explore the case relationship map</summary><CaseExplorer data={{ kind: primaryKind, total: primary.total, tree: primary.tree }} /></details>
 {exampleVisuals && <details class="example-dataset"><summary>Explore the example case map</summary><CaseExplorer data={{ kind: 'example', total: exampleVisuals.total, tree: exampleVisuals.tree }} /></details>}
 <script>
   import { mountCaseVisuals } from '../scripts/case-visuals';

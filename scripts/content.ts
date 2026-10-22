@@ -1,4 +1,5 @@
 import { readdir, readFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { parseDocument } from 'yaml';
 import { createProcessor } from '@mdx-js/mdx';
@@ -24,7 +25,18 @@ export async function loadContent(root = resolveSiteData().contentDir): Promise<
       records.push({ collection, data: parsed.data, body, file } as ContentRecord);
     }
   }
-  validateRecords(records);
+  const dataRoot = path.dirname(root);
+  for (const record of records) {
+    if (record.collection === 'profile' && record.data.cv
+      && !existsSync(path.join(dataRoot, 'public', record.data.cv.url.slice(1)))) {
+      throw new Error(`${record.file}: prepared CV is missing from public${record.data.cv.url}.`);
+    }
+    if (record.collection === 'pages' && record.data.slug === 'cv') {
+      throw new Error(`${record.file}: cv is reserved for the generated professional CV.`);
+    }
+  }
+  const networks = existsSync(path.join(dataRoot, 'site.json')) ? resolveSiteData(dataRoot).caseNetworks : undefined;
+  validateRecords(records, { networks });
   return records;
 }
 
@@ -40,7 +52,7 @@ async function markdownFiles(directory: string): Promise<string[]> {
   return files.flat().sort();
 }
 
-export function validateRecords(records: ContentRecord[]): void {
+export function validateRecords(records: ContentRecord[], options: { networks?: string[] } = {}): void {
   const index = new Map<string, ContentRecord>();
   const repositories = new Set<string>();
   for (const record of records) {
@@ -58,6 +70,17 @@ export function validateRecords(records: ContentRecord[]): void {
       const chart = index.get(`charts/${record.data.chart}`);
       if (chart?.collection === 'charts' && !chart.data.categories.some(({ id }) => id === record.data.category)) {
         throw new Error(`${record.file}: category references missing charts/${record.data.chart}/${record.data.category}.`);
+      }
+      if (options.networks) {
+        const unknown = record.data.networks.filter((network) => !options.networks!.includes(network));
+        if (unknown.length) throw new Error(`${record.file}: unknown network IDs: ${unknown.join(', ')}. Use or extend case_networks in site.json.`);
+      }
+      if (chart?.collection === 'charts' && chart.data.subcategory_paths.length) {
+        const value = record.data.subcategory;
+        const casePath = [record.data.category, ...(Array.isArray(value) ? value : value ? [value] : [])];
+        if (!chart.data.subcategory_paths.some((allowed) => casePath.every((part, index) => allowed[index] === part))) {
+          throw new Error(`${record.file}: classification is not a configured subcategory_paths prefix in charts/${chart.data.slug}.`);
+        }
       }
     }
     for (const [field, collection] of Object.entries(relationships[record.collection] ?? {})) {

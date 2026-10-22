@@ -7,12 +7,14 @@ import { navigationIcons } from '../lib/icons';
 import { openGraphPath } from '../lib/open-graph';
 import ParticleBackground from '../components/ParticleBackground.astro';
 import themeInit from '../scripts/theme-init.js?raw';
+import { mayIndexSite } from '../lib/indexing';
 
 type Props = {
   title: string;
   description: string;
   profile?: CollectionEntry<'profile'>;
   socialImagePath?: string;
+  noindex?: boolean;
   article?: { published_on: string | null; updated_on: string | null };
 };
 const { title, description } = Astro.props;
@@ -28,6 +30,12 @@ const displayTitle = profile && !title.includes(name) ? `${title} | ${name}` : t
 const currentPath = Astro.url.pathname;
 const canonical = new URL(currentPath, Astro.site!);
 const socialImage = new URL(Astro.props.socialImagePath ?? openGraphPath(currentPath), Astro.site!);
+const indexable = mayIndexSite(import.meta.env.SITE_INDEXING_ENABLED === true, includeDrafts, Boolean(profile), Astro.props.noindex);
+const identity = profile && currentPath === '/' && indexable ? {
+  '@context': 'https://schema.org', '@type': 'Person',
+  name: profile.data.name, description: profile.data.description_short,
+  jobTitle: profile.data.headline, url: Astro.site?.href,
+} : undefined;
 ---
 <!doctype html>
 <html lang="en" data-theme="dark">
@@ -35,7 +43,7 @@ const socialImage = new URL(Astro.props.socialImagePath ?? openGraphPath(current
     <meta charset="utf-8" />
     <script is:inline set:html={themeInit}></script>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="robots" content="noindex, nofollow" />
+    <meta name="robots" content={indexable ? 'index, follow' : 'noindex, nofollow'} />
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
     <link rel="sitemap" href="/sitemap-index.xml" />
@@ -57,6 +65,7 @@ const socialImage = new URL(Astro.props.socialImagePath ?? openGraphPath(current
     {Astro.props.article?.published_on && <meta property="article:published_time" content={`${Astro.props.article.published_on}T00:00:00Z`} />}
     {Astro.props.article?.updated_on && <meta property="article:modified_time" content={`${Astro.props.article.updated_on}T00:00:00Z`} />}
     <title>{displayTitle}</title>
+    {identity && <script is:inline type="application/ld+json" set:html={JSON.stringify(identity).replace(/</g, '\\u003c')} />}
   </head>
   <body>
     <ParticleBackground />
@@ -67,12 +76,13 @@ const socialImage = new URL(Astro.props.socialImagePath ?? openGraphPath(current
           {initials && <span class="monogram" aria-hidden="true">{initials}</span>}
           <span>{name}</span>
         </a>
-        {navigation.length > 0 && <nav class="site-nav" aria-label="Main navigation">
-          {navigation.map(({ id, label, url }) => <a href={url} aria-current={(id === 'home' ? currentPath === '/' : currentPath.startsWith(url)) || (id === 'casework' && currentPath.startsWith('/investigations/')) ? 'page' : undefined}>{navigationIcons[id] && <Icon name={navigationIcons[id]} aria-hidden="true" />}<span>{label}</span></a>)}
+        {navigation.length > 0 && <nav class="site-nav" id="site-navigation" aria-label="Main navigation">
+          {navigation.map(({ id, label, url }) => <a href={url} aria-current={(id === 'home' ? currentPath === '/' : currentPath.startsWith(url)) || (id === 'casework' && (currentPath.startsWith('/investigations/') || currentPath.startsWith('/cases/'))) ? 'page' : undefined}>{navigationIcons[id] && <Icon name={navigationIcons[id]} aria-hidden="true" />}<span>{label}</span></a>)}
         </nav>}
         <div class="header-actions">
           <button class="theme-toggle" type="button" aria-label="Dark mode" aria-pressed="true" title="Switch to light mode" hidden><Icon name="lucide:moon" class="theme-moon" aria-hidden="true" /><Icon name="lucide:sun" class="theme-sun" aria-hidden="true" /></button>
           {contactPage && <a class="button button-primary header-contact" href="/contact/" aria-current={currentPath.startsWith('/contact/') ? 'page' : undefined}>Contact</a>}
+          {navigation.length > 0 && <button class="navigation-toggle" type="button" aria-controls="site-navigation" aria-expanded="false" hidden><span class="navigation-toggle-icon" aria-hidden="true"><span></span><span></span><span></span></span><span>Menu</span></button>}
         </div>
       </div>
     </header>
@@ -88,6 +98,9 @@ const socialImage = new URL(Astro.props.socialImagePath ?? openGraphPath(current
       </div>
     </footer>
     <script>
+      import { mountSiteNavigation } from '../scripts/navigation';
+      const cleanupNavigation = mountSiteNavigation();
+      import.meta.hot?.dispose(cleanupNavigation);
       // Keep anchors and keyboard focus below the sticky header as its links wrap.
       const header = document.querySelector<HTMLElement>('.site-header');
       if (header) {

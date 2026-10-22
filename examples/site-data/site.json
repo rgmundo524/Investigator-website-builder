@@ -1,4 +1,21 @@
 {
   "version": 1,
-  "url": "https://example.com"
+  "url": "https://example.com",
+  "indexing": false,
+  "case_networks": [
+    "bitcoin",
+    "ethereum",
+    "tron",
+    "solana",
+    "arbitrum",
+    "optimism",
+    "base",
+    "polygon",
+    "avalanche",
+    "bnb-chain",
+    "liquid",
+    "cardano",
+    "litecoin",
+    "zcash"
+  ]
 }

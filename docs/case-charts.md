@@ -49,7 +49,8 @@ controls remain hidden until a nonblank search term or a filter is applied.
 Clearing the last active criterion collapses that area again. Pagefind still
 preloads in the background to prepare the filter options.
 
-All results have their existing case-detail links. Examples retain their explicit
+All results link to permanent `/cases/<slug>/` detail pages. Changing category
+does not change that address. Examples retain their explicit
 labels and dataset filter. Charts and statistical totals always describe their
 whole investigation dataset; the Pagefind result count reflects additional text,
 network, and status filtering.
@@ -89,9 +90,10 @@ others go deeper, a **No further classification** bucket holds those shorter
 paths. This prevents them from disappearing or being counted again. Selecting
 Investment Platform still shows both the shorter and deeper cases.
 
-Category pages group cases by the first subcategory and display the complete
-classification path in each case’s facts. Existing category and case anchors
-remain stable. Pagefind indexes every ancestor prefix of the complete path under the internal
+Category pages group concise case summaries by the first subcategory. Each
+summary links to the complete narrative and classification facts on its own
+case page. Existing category `#case-slug` anchors still land on these summaries
+while the case remains in that category. Pagefind indexes every ancestor prefix of the complete path under the internal
 `CasePath` filter. For example, Fake Exchange is indexed beneath Investment
 Platform and Pig butchering, not as an unrelated tag. The same label under a
 different parent cannot match that path. An exact terminal token distinguishes
@@ -111,7 +113,10 @@ shorter paths from their deeper descendants.
   tables, with links to their category pages.
 - Real case studies and illustrative examples stay in separate datasets.
   Examples remain drafts and cannot be published as actual work.
-- Production includes only published real cases in published charts. Draft
+- Routes and search require a visible Casework page with a `charts` section and
+  the chart selected in its `charts` list. Deselecting a chart removes its category
+  and case pages as well as its search records.
+- Production includes only published real cases in those published charts. Draft
   preview includes the illustrative records. Chart JSON contains only explicitly
   selected display fields, never editorial notes or unused content blocks.
 

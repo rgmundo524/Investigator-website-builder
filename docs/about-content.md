@@ -1,9 +1,10 @@
 # About: skills, participation, hobbies, and projects
 
 `content/pages/about.md` controls section order and selects every displayed record.
-Use `section_order: [skills, volunteering, organizations, interests, github]`
+Use `section_order: [interests, volunteering, organizations, skills, github]`
 to reproduce the current layout, or reorder/remove those names. Empty selections
-render no section. The professional biography and expertise remain on Work History.
+render no section. Hobbies and community participation introduce the person before
+the technical skill inventory. The professional biography and expertise remain on Work History.
 
 | Section | Subject files | Page selection | Template |
 | --- | --- | --- | --- |

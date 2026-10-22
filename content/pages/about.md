@@ -14,10 +14,10 @@ blocks:
   skills_intro: A selection of my programming, systems, and analytical skills.
   interests_heading: Hobbies
 section_order:
-  - skills
+  - interests
   - volunteering
   - organizations
-  - interests
+  - skills
   - github
 skill_symbols: dots
 skill_group_order:

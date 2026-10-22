@@ -21,7 +21,8 @@ devenv -O env.SITE_DATA_DIR:string ../reymundo-site-data shell -- site-dev
 
 See [external content and migration](docs/external-content.md) for devenv settings,
 private repository separation, and the generic `examples/site-data` starter.
-The existing bundled content remains the default during migration.
+The generic `examples/site-data` starter is now the default. Select your external content folder explicitly.
+The legacy bundled personal content is retained only for migration; use `SITE_DATA_DIR=.` explicitly to export it.
 For a complete generic dataset covering every current page, see the
 [starter editing map](examples/site-data/README.md). It includes seven fictional
 cases for the interactive charts and search.
@@ -82,16 +83,24 @@ The included `.envrc` is optional. If you use direnv, review it and run
 
 The devenv shell provides `site-dev`, `site-check`, `site-build`, `site-drafts`,
 and `site-export` as commands that always run from the builder root.
+`site-upgrade` previews recognized content migrations; `site-upgrade --write`
+applies them after saving backups, without changing publication status.
 `site-setup` remains available to force a clean dependency reinstall
 when troubleshooting; it is not required for normal startup.
 
-All initial entries are drafts, so the ordinary build intentionally shows only
+All starter entries are drafts, so the ordinary build intentionally shows only
 “Site in preparation.” Use `npm run dev` to see the populated content preview.
 Draft builds are stored separately to keep them out of a future `dist/` upload.
-Keep `CONTENT_PREVIEW` unset during normal builds. Both preview modes currently
-include `noindex` metadata; public launch will include a deliberate metadata pass.
+Keep `CONTENT_PREVIEW` unset during normal builds. Preview builds always include `noindex`. Production also remains `noindex` until you
+explicitly set `"indexing": true` in the selected content directory's `site.json`.
+The 404 page remains excluded from indexing. See [publication readiness](docs/site-readiness.md).
 
 ## Edit content
+
+See [publication readiness](docs/site-readiness.md) for stable case links, historical dates,
+network vocabulary, publication controls, and the pilot case-entry process.
+The [professional CV](docs/cv.md) is generated from the same Markdown and can be printed or saved as PDF.
+
 
 Start with [the content guide](docs/content-guide.md). Copy an appropriate file
 from `templates/` into the matching collection under `content/`.
@@ -161,7 +170,7 @@ Builds include a styled `404.html` for missing pages and an automatically genera
 `sitemap-index.xml` from the official `@astrojs/sitemap` integration. Sitemap URLs
 use the selected content directory's `site.json`, and the shared page layout links
 to the sitemap. See [missing pages and sitemap](docs/page-structure.md#missing-pages-and-sitemap).
-The current draft visibility and `noindex, nofollow` settings are unchanged.
+Draft visibility is unchanged. Search indexing is opt-in through `site.json`; it defaults to disabled.
 
 The intended host is Cloudflare Pages. Compile locally with the selected
 `SITE_DATA_DIR`, then upload `dist/` using Pages Direct Upload. The build needs

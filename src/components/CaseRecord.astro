@@ -1,29 +1,38 @@
 ---
-import { render, type CollectionEntry } from 'astro:content';
+import { getEntry, render, type CollectionEntry } from 'astro:content';
 import { statusLabels, readable, subcategoryPath } from '../lib/cases';
+import { formatCaseDate } from '../lib/case-dates';
+import { caseMoneyMetrics } from '../lib/case-metadata';
+import { isVisible } from '../lib/content';
 import { Icon } from 'astro-icon/components';
-type Props = { entry: CollectionEntry<'cases'>; heading?: 'h3' | 'h4' };
-const { entry, heading: Heading = 'h3' } = Astro.props;
+type Props = { entry: CollectionEntry<'cases'>; heading?: 'h2' | 'h3' | 'h4'; showHeading?: boolean };
+const { entry, heading: Heading = 'h3', showHeading = true } = Astro.props;
 const { Content } = await render(entry);
+const experience = entry.data.experience ? await getEntry('experience', entry.data.experience) : undefined;
+const moneyMetrics = caseMoneyMetrics(entry.data.metrics);
 ---
 <article class="case-study" id={entry.id} aria-labelledby={`${entry.id}-title`}>
         {entry.data.content_kind === 'example' && <p class="example-label">Illustrative case example</p>}
-        <Heading id={`${entry.id}-title`}>{entry.data.title}</Heading><p class="lead">{entry.data.description_short}</p>
+        {showHeading && <><Heading id={`${entry.id}-title`}>{entry.data.title}</Heading><p class="lead">{entry.data.description_short}</p></>}
         <dl class="case-facts">
           <div><dt>Status</dt><dd>{statusLabels[entry.data.case_status]}</dd></div>
           <div><dt>Classification</dt><dd>{subcategoryPath(entry).map(readable).join(' → ')}</dd></div>
-          <div><dt>Opened</dt><dd>{entry.data.opened_on ?? 'Not recorded'}</dd></div>
-          {entry.data.closed_on && <div><dt>Completed</dt><dd>{entry.data.closed_on}</dd></div>}
+          <div><dt>Opened</dt><dd>{formatCaseDate(entry.data.opened_on)}</dd></div>
+          {entry.data.closed_on && <div><dt>Completed</dt><dd>{formatCaseDate(entry.data.closed_on)}</dd></div>}
           {entry.data.role && <div><dt>Role</dt><dd>{entry.data.role}</dd></div>}
+          {experience && isVisible(experience) && <div><dt>Organization</dt><dd>{experience.data.organization}</dd></div>}
           {entry.data.networks.length > 0 && <div><dt>Networks</dt><dd>{entry.data.networks.map(readable).join(', ')}</dd></div>}
           {entry.data.assets.length > 0 && <div><dt>Assets</dt><dd>{entry.data.assets.join(', ')}</dd></div>}
           {entry.data.jurisdictions.length > 0 && <div><dt>Jurisdictions</dt><dd>{entry.data.jurisdictions.join(', ')}</dd></div>}
           {entry.data.services.length > 0 && <div><dt>Services</dt><dd>{entry.data.services.map(readable).join(', ')}</dd></div>}
+          {entry.data.metrics.addresses_reviewed != null && <div><dt>Addresses reviewed</dt><dd>{entry.data.metrics.addresses_reviewed.toLocaleString('en-US')}</dd></div>}
           {entry.data.metrics.wallets_reviewed !== null && <div><dt>Wallets reviewed</dt><dd>{entry.data.metrics.wallets_reviewed.toLocaleString('en-US')}</dd></div>}
           {entry.data.metrics.transactions_reviewed !== null && <div><dt>Transactions reviewed</dt><dd>{entry.data.metrics.transactions_reviewed.toLocaleString('en-US')}</dd></div>}
-          {[{ label: 'Reported loss', value: entry.data.metrics.reported_loss_usd }, { label: 'Assets reviewed', value: entry.data.metrics.assets_reviewed_usd }].map(({ label, value }) => value !== null && <div><dt>{label}</dt><dd>{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value)}</dd></div>)}
+          {moneyMetrics.map(({ label, value, note, valuationDate }) => value !== null && <div><dt>{label}</dt><dd>
+            {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value)}
+            {note && <p class="meta">{note}{valuationDate ? ` Valuation date: ${formatCaseDate(valuationDate)}.` : ''}</p>}
+          </dd></div>)}
         </dl>
-        {entry.data.metrics.amount_note && <p class="meta">{entry.data.metrics.amount_note}{entry.data.metrics.valuation_date ? ` Valuation date: ${entry.data.metrics.valuation_date}.` : ''}</p>}
         {entry.data.blocks.investigative_question && <p class="callout">{entry.data.blocks.investigative_question}</p>}
         <div class="prose"><Content /></div>
         {entry.data.links.length > 0 && <ul>{entry.data.links.map((link) => <li><a class="external-reference" href={link.url}>{link.label}<Icon name="lucide:external-link" aria-hidden="true" /></a></li>)}</ul>}

@@ -1,4 +1,6 @@
 import { z } from 'astro/zod';
+import { caseDateRange, isCaseDate } from '../lib/case-dates';
+import { caseMoneyMetrics } from '../lib/case-metadata';
 
 const text = z.string().trim().min(1);
 const slug = text.regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Use lowercase words separated by hyphens.');
@@ -19,6 +21,8 @@ const contactDetails = {
 };
 const contactService = z.strictObject({
   id: slug, name: text, description: text,
+  audience: text.optional(),
+  primary: z.boolean().default(false),
   display_order: z.number().int().nonnegative().default(100),
   enabled: z.boolean().default(true),
   website: link.optional(), action: link,
@@ -103,6 +107,10 @@ export const schemas = {
   profile: z.strictObject({
     ...common, name: text, headline: text,
     location: text.optional(),
+    cv: z.strictObject({
+      url: text.regex(/^\/(?:[A-Za-z0-9_-]+\/)*[A-Za-z0-9_-]+\.pdf$/, 'Use a root-relative PDF path from your public directory, such as /files/professional-cv.pdf.'),
+      label: text.optional(),
+    }).optional(),
     portrait: z.union([
       portraitImage,
       z.strictObject({
@@ -117,7 +125,8 @@ export const schemas = {
     ...common,
     services_heading: text,
     services: z.array(contactService).default([])
-      .refine((items) => new Set(items.map(({ id }) => id)).size === items.length, 'Each service must have a unique id.'),
+      .refine((items) => new Set(items.map(({ id }) => id)).size === items.length, 'Each service must have a unique id.')
+      .refine((items) => items.filter((item) => item.enabled && item.primary).length <= 1, 'Choose at most one enabled primary contact route.'),
     social: z.strictObject({
       title: text, name: text, description: text,
       enabled: z.boolean().default(true),
@@ -182,7 +191,11 @@ export const schemas = {
     ...common,
     title: text,
     categories: caseCategories,
-  }),
+    subcategory_paths: z.array(z.array(slug).min(1)).default([])
+      .refine((paths) => new Set(paths.map((parts) => parts.join('/'))).size === paths.length,
+        'List each classification path once.'),
+  }).refine((chart) => chart.subcategory_paths.every((parts) => chart.categories.some(({ id }) => id === parts[0])),
+    { path: ['subcategory_paths'], message: 'Each classification path must start with a category from this chart.' }),
   articles: z.strictObject({
     ...common, title: text,
     published_on: z.iso.date().nullable().default(null),
@@ -215,26 +228,36 @@ export const schemas = {
     subcategory: z.union([slug, z.array(slug).min(1)]).nullable().default(null),
     content_kind: z.enum(['example', 'case_study']).default('example'),
     case_status: z.enum(['active', 'completed', 'on_hold', 'unspecified']).default('unspecified'),
-    opened_on: z.iso.date().nullable().default(null),
-    closed_on: z.iso.date().nullable().default(null),
+    opened_on: z.string().refine(isCaseDate, 'Use a quoted YYYY, YYYY-MM, or YYYY-MM-DD date.').nullable().default(null),
+    closed_on: z.string().refine(isCaseDate, 'Use a quoted YYYY, YYYY-MM, or YYYY-MM-DD date.').nullable().default(null),
     role: text.optional(),
+    experience: slug.optional(),
     networks: z.array(slug).default([]).refine((items) => new Set(items).size === items.length, 'Use each network once per case.'),
     assets: z.array(text).default([]),
     jurisdictions: z.array(text).default([]),
     services: z.array(z.enum(['tracing', 'osint', 'forensic-report', 'expert-report', 'deposition', 'testimony'])).default([]),
     metrics: z.strictObject({
+      addresses_reviewed: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER).nullable().default(null),
       wallets_reviewed: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER).nullable().default(null),
       transactions_reviewed: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER).nullable().default(null),
       reported_loss_usd: z.number().nonnegative().max(Number.MAX_SAFE_INTEGER).nullable().default(null),
       assets_reviewed_usd: z.number().nonnegative().max(Number.MAX_SAFE_INTEGER).nullable().default(null),
       valuation_date: z.iso.date().nullable().default(null),
       amount_note: text.optional(),
-    }).default({ wallets_reviewed: null, transactions_reviewed: null, reported_loss_usd: null, assets_reviewed_usd: null, valuation_date: null }),
+      reported_loss_valuation_date: z.iso.date().nullable().default(null),
+      reported_loss_note: text.optional(),
+      assets_reviewed_valuation_date: z.iso.date().nullable().default(null),
+      assets_reviewed_note: text.optional(),
+    }).default({ addresses_reviewed: null, wallets_reviewed: null, transactions_reviewed: null, reported_loss_usd: null, assets_reviewed_usd: null, valuation_date: null, reported_loss_valuation_date: null, assets_reviewed_valuation_date: null }),
   }).superRefine((entry, ctx) => {
-    if (entry.closed_on && entry.opened_on && entry.closed_on < entry.opened_on) ctx.addIssue({ code: 'custom', path: ['closed_on'], message: 'Closing date cannot precede opening date.' });
+    const opened = entry.opened_on ? caseDateRange(entry.opened_on) : undefined;
+    const closed = entry.closed_on ? caseDateRange(entry.closed_on) : undefined;
+    if (opened && closed && closed.end < opened.start) ctx.addIssue({ code: 'custom', path: ['closed_on'], message: 'Closing date cannot precede opening date.' });
     if (entry.closed_on && entry.case_status !== 'completed') ctx.addIssue({ code: 'custom', path: ['closed_on'], message: 'Only completed cases can have a closing date.' });
     if (entry.content_kind === 'example' && entry.publication_status === 'published') ctx.addIssue({ code: 'custom', path: ['content_kind'], message: 'Examples remain drafts and cannot be published as real cases.' });
-    if ((entry.metrics.reported_loss_usd !== null || entry.metrics.assets_reviewed_usd !== null) && (!entry.metrics.amount_note || !entry.metrics.valuation_date)) ctx.addIssue({ code: 'custom', path: ['metrics'], message: 'Recorded USD amounts require an amount_note and valuation_date.' });
+    for (const metric of caseMoneyMetrics(entry.metrics)) {
+      if (metric.value !== null && (!metric.note || !metric.valuationDate)) ctx.addIssue({ code: 'custom', path: ['metrics', metric.field], message: `${metric.label} requires a valuation date and amount note, using its own fields or the shared valuation_date and amount_note.` });
+    }
   }),
   pages: z.strictObject({
     ...common, title: text, profile: slug,
@@ -275,7 +298,7 @@ export const relationships: Partial<Record<CollectionName, Record<string, Collec
   experience: { expertise: 'expertise', projects: 'projects' },
   credentials: { expertise: 'expertise' },
   projects: { experience: 'experience', expertise: 'expertise' },
-  cases: { chart: 'charts' },
+  cases: { chart: 'charts', experience: 'experience' },
   articles: { related_cases: 'cases' },
   pages: {
     profile: 'profile', contact: 'contacts', experience: 'experience', education: 'education',
