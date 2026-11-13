@@ -209,14 +209,14 @@ test('the real local launcher edits, previews, checks and packages a content pac
   const packaging = await api('/api/jobs', { kind: 'package', destination: releaseDir });
   assert.equal(packaging.active?.kind, 'package');
   const packageId = packaging.active.id;
-  await waitFor(() => api('/api/jobs'), jobs => {
+  const completedPackaging = await waitFor(() => api('/api/jobs'), jobs => {
     const release = jobs.recent.find((job: { id: string }) => job.id === packageId);
     if (!release) return false;
     assert.equal(release.status, 'succeeded', release.logs);
     assert.equal(release.exitCode, 0);
-    assert.equal(await realpath(release.destination), await realpath(releaseDir));
     return true;
   }, 'the real production package using Node and npm_execpath', 120_000);
+  assert.equal(await realpath(completedPackaging.recent.find((job: { id: string }) => job.id === packageId).destination), await realpath(releaseDir));
   const productionHome = await readFile(path.join(releaseDir, 'index.html'), 'utf8');
   assert.match(productionHome, new RegExp(name));
   assert.doesNotMatch(productionHome, /Development preview · Draft content included/);
