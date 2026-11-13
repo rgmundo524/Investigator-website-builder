@@ -10,9 +10,12 @@ summaries, contact details, and photos belong in your own content folder.
 
 ## Start on Windows
 
-Download the Windows builder ZIP, choose **Extract All**, and double-click
+Download the [Windows builder ZIP](https://github.com/rgmundo524/Investigator-website-builder/releases/latest/download/investigator-website-builder-windows.zip)
+from [GitHub Releases](https://github.com/rgmundo524/Investigator-website-builder/releases/latest),
+choose **Extract All**, and double-click
 **Start Builder.cmd**. Install [Node.js 24](https://nodejs.org/en/download/) once,
-including npm. The launcher prepares dependencies and opens the local editor.
+including npm. Select the **24.x** version explicitly; the download page may
+default to another release. The launcher prepares dependencies and opens the local editor.
 Create or open a separate content folder, then choose **Preview & release →
 Start local preview** to keep the editor and website open together. Save,
 review, and apply changes to update that preview.
@@ -28,7 +31,7 @@ From a source checkout, the same launcher runs with `npm start`.
 With Node.js 24 installed, create a fresh distribution outside this repository:
 
 ```sh
-npm run builder:package -- ../investigator-website-builder-v1.0.0-windows.zip
+npm run builder:package -- ../investigator-website-builder-windows.zip
 ```
 
 The ZIP includes the launcher, builder source, blank content pack, examples, and
@@ -36,6 +39,12 @@ instructions. It excludes Git history, installed dependencies, generated sites,
 private editor history, reports, and selected personal content. Each Windows
 computer installs its own locked dependencies at first launch. Tests and GitHub
 workflows remain in the source repository.
+
+Share the GitHub Releases download link above with colleagues. Publish each
+updated builder as a new release using the same asset filename; that link then
+serves the latest version. Installed copies update when users download and
+extract the new app, then open their existing content folder. See the
+[release guide](docs/releases.md) for the maintainer steps.
 
 This **builder ZIP** is different from the **blank content ZIP** and the
 **published website** described below. Only a generated published website is

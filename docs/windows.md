@@ -9,7 +9,7 @@ These steps use Windows directly and need only Node.js 24.
 
 | Item | What it contains | What you do with it |
 | --- | --- | --- |
-| **Builder app ZIP** — `investigator-website-builder-v1.0.0-windows.zip` | The shared builder, its launcher, and instructions | Extract it and run **Start Builder.cmd**. |
+| **Builder app ZIP** — `investigator-website-builder-windows.zip` | The shared builder, its launcher, and instructions | Extract it and run **Start Builder.cmd**. |
 | **Blank content ZIP** | Editable pages, profile details, and places for your photos and records | Extract it into a separate folder, then open that folder in the builder. You can also create a blank content pack inside the builder. |
 | **Published website** | Generated website files, including `index.html` | Upload the release folder to your Cloudflare Pages project. |
 
@@ -17,18 +17,71 @@ Keep your content folder when you update the builder. It holds your writing,
 photos, saved drafts, and review history. The builder can open different people's
 content folders without mixing their records.
 
-## Set up the builder
+## Download the builder from GitHub
 
-1. Visit the [official Node.js download page](https://nodejs.org/en/download).
-   Select **Node.js 24**, **Windows**, and the **Windows Installer (.msi)** for
-   your computer. Run the installer with its normal settings, including npm.
-2. In File Explorer, right-click the builder ZIP and choose **Extract All**.
+Download the [latest Windows package](https://github.com/rgmundo524/Investigator-website-builder/releases/latest/download/investigator-website-builder-windows.zip).
+This link stays the same when a new version is released. You can also open the
+[latest release page](https://github.com/rgmundo524/Investigator-website-builder/releases/latest),
+expand **Assets**, and choose **investigator-website-builder-windows.zip**.
+The release notes describe what changed.
+
+Use the Windows package under **Assets**, rather than GitHub's automatically
+generated **Source code** downloads or **Code → Download ZIP**. Colleagues do not
+need Git or a GitHub account to download this public release. A copy sent
+directly by the coordinator works too, but the release page is where to get
+future updates. Older packages may include a version in their filename, such
+as `investigator-website-builder-v1.0.0-windows.zip`.
+
+## Install Node.js 24 once
+
+Node.js runs the builder on your computer. Its installer also includes npm,
+which downloads the builder's required software on first launch.
+
+1. Open the [official Node.js download page](https://nodejs.org/en/download/).
+   Set the version to **v24.x LTS** and the operating system to **Windows**.
+   Choose version **24** even if the page initially offers a newer version.
+2. Choose **x64** for a typical Intel or AMD PC, or **ARM64** for an ARM PC.
+   To check, open Windows **Settings → System → About** and look at **System
+   type** under **Device specifications**. An **x64-based processor** uses x64;
+   an **ARM-based processor** uses ARM64.
+3. Download **Windows Installer (.msi)**. Open the downloaded file from your
+   browser's downloads or File Explorer's **Downloads** folder.
+4. In **Node.js Setup**, choose **Next**, accept the license agreement, and keep
+   the suggested destination folder. On **Custom Setup**, leave **npm package
+   manager** and **Add to PATH** enabled with the other default features.
+5. If a page offers to automatically install additional tools for native
+   modules, leave that checkbox **unchecked**. Continue to **Install**. If
+   Windows asks to allow the installer to make changes, choose **Yes**; a work
+   computer may require your IT administrator's approval.
+6. Wait for installation to finish, then choose **Finish**. Close any old
+   builder or command windows and open **Start Builder.cmd** again so it picks
+   up the installed software.
+
+The [official installer source](https://github.com/nodejs/node/blob/v24.x/tools/msvs/msi/nodemsi/product.wxs)
+includes npm, the PATH entries, and the separate optional native-tools step.
+Microsoft documents the [System type check for ARM PCs](https://support.microsoft.com/en-us/windows/hardware/printer/help-with-installing-printers-on-arm-pcs).
+
+**Optional installation check:** open the Windows Start menu, type **Command
+Prompt**, and open it. Enter each command separately:
+
+```text
+node --version
+npm --version
+```
+
+The first should print `v24.` followed by the rest of the version number. The
+second should print an npm version number. Then close that window. This check
+is optional; normal use is through the launcher and browser.
+
+## Start the builder
+
+1. In File Explorer, right-click the builder ZIP and choose **Extract All**.
    Choose somewhere you can keep it, such as your Documents folder. Open the
    extracted `investigator-website-builder` folder before starting the builder.
-3. Double-click **Start Builder.cmd**. The first start needs an internet
+2. Double-click **Start Builder.cmd**. The first start needs an internet
    connection to download the builder's dependencies. Leave its window open
    while this finishes; later starts reuse the installed files.
-4. Open the editor address shown in that window, normally
+3. Open the editor address shown in that window, normally
    `http://127.0.0.1:4310/`, if your browser has not opened it already.
 
 The launcher window keeps the editor running. Leave it open while you work.
@@ -153,9 +206,26 @@ Back up the whole editable content folder, including its photos and the
 copies of replaced records; those copies do not replace a full folder backup.
 Your published website cannot restore unfinished writing or review history.
 
-When you receive a newer builder app, stop the old builder and extract the new
-app into a separate folder. Start the new copy and open your existing content
-folder. Keep your content and backups separate from the app being replaced.
+## Update the builder application
+
+1. Save your work and stop the old builder with **Ctrl+C** in its launcher
+   window. Back up your complete editable content folder.
+2. Open the [latest release page](https://github.com/rgmundo524/Investigator-website-builder/releases/latest)
+   and read its release notes. Download **investigator-website-builder-windows.zip**
+   under **Assets**. The same [Windows download link](https://github.com/rgmundo524/Investigator-website-builder/releases/latest/download/investigator-website-builder-windows.zip)
+   always points to the latest published package.
+3. Use **Extract All** to put the new app in a separate folder. For example,
+   keep the old app in `C:\Websites\Builder 1.0.0` and extract the new one into
+   `C:\Websites\Builder 1.0.1`. Use the version shown on the release page.
+4. Double-click the new copy's **Start Builder.cmd**, then use **Open a folder**
+   to select your existing content folder. The new app installs its own
+   dependencies on first launch.
+5. Start the local preview and check your website. Once satisfied, you can
+   remove the old app folder. Keep your content folder and its backups.
+
+Updates are downloaded manually. The builder does not replace itself or your
+content automatically. Node.js 24 can stay installed across builder updates;
+follow the release notes if a future version changes that requirement.
 
 ## If something does not start
 
