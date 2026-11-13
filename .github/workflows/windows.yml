@@ -47,7 +47,7 @@ jobs:
       - name: Package and extract with Windows
         shell: pwsh
         run: |
-          $archive = Join-Path $env:RUNNER_TEMP 'investigator-website-builder-v1.0.0-windows.zip'
+          $archive = Join-Path $env:RUNNER_TEMP 'investigator-website-builder-windows.zip'
           node scripts/package-builder.mjs $archive
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $expanded = Join-Path $env:RUNNER_TEMP 'builder-extracted'
@@ -57,6 +57,6 @@ jobs:
       - uses: actions/upload-artifact@v7
         with:
           name: investigator-website-builder-windows
-          path: ${{ runner.temp }}/investigator-website-builder-v1.0.0-windows.zip
+          path: ${{ runner.temp }}/investigator-website-builder-windows.zip
           if-no-files-found: error
           retention-days: 30
