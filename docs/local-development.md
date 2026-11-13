@@ -6,9 +6,25 @@ other project dependencies during environment activation. Astro is pinned in
 `package-lock.json` and installed into this project's `node_modules/` directory.
 devenv adds the local executables to the environment's PATH.
 
-Run `devenv shell`, then `npm run dev`, or run `devenv up` to initialize the
-environment and start the site process together. No manual `npm ci` step is
-required. The first activation needs network access for uncached dependencies.
+For the same editor and managed website preview used on Windows, run:
+
+```sh
+devenv shell
+npm start
+```
+
+Create or open a separate content folder in the builder, then choose
+**Preview & release → Start local preview**. The default environment preselects
+`templates/investigator-site`; choose **Change folder** to select your separate
+content pack. No separate system-wide Node
+installation or manual `npm ci` step is required for this route. The first
+activation needs network access for uncached dependencies. Use the full source
+download/checkout: the Windows app ZIP does not include the Nix/devenv files.
+See the [README setup sections](../README.md#linux-install-and-start) for the
+NixOS package configuration and the direct Node/npm alternative.
+
+For the standalone website process only, run `npm run dev` inside the shell,
+or use `devenv up`. That process does not start the builder editor.
 
 ## Reproducibility
 
