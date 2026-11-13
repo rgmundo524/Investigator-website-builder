@@ -1,0 +1,62 @@
+name: Builder checks and Windows package
+
+on:
+  push:
+    branches: [main, 'codex/**']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      ASTRO_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --include=dev
+      - run: npm test
+      - run: npm run check
+
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    env:
+      ASTRO_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm.cmd ci --include=dev
+      - name: Check the Windows launcher, editor and managed preview
+        run: node --import tsx --test tests/npm-runtime.test.ts tests/builder-package.test.ts tests/windows-workflow.test.ts
+      - run: npm.cmd run check
+      - name: Package and extract with Windows
+        shell: pwsh
+        run: |
+          $archive = Join-Path $env:RUNNER_TEMP 'investigator-website-builder-v1.0.0-windows.zip'
+          node scripts/package-builder.mjs $archive
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $expanded = Join-Path $env:RUNNER_TEMP 'builder-extracted'
+          Expand-Archive -LiteralPath $archive -DestinationPath $expanded
+          if (-not (Test-Path (Join-Path $expanded 'investigator-website-builder/Start Builder.cmd'))) { throw 'Launcher missing from Windows ZIP.' }
+          if (-not (Test-Path (Join-Path $expanded 'investigator-website-builder/templates/investigator-site/site.json'))) { throw 'Blank content pack missing.' }
+      - uses: actions/upload-artifact@v7
+        with:
+          name: investigator-website-builder-windows
+          path: ${{ runner.temp }}/investigator-website-builder-v1.0.0-windows.zip
+          if-no-files-found: error
+          retention-days: 30
