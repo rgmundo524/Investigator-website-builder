@@ -1,6 +1,7 @@
 import { z } from 'astro/zod';
-import { caseDateRange, isCaseDate } from '../lib/case-dates';
-import { caseMoneyMetrics } from '../lib/case-metadata';
+import { OFF_CHAIN_LEAD_TYPES } from '../lib/off-chain-leads';
+import { credentialIssuerKey } from '../lib/credentials';
+import { SUPPORTED_CONTENT_ICON_NAMES } from '../config/content-icons';
 
 const text = z.string().trim().min(1);
 const slug = text.regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Use lowercase words separated by hyphens.');
@@ -10,6 +11,24 @@ const portraitImage = z.strictObject({
   image: text.regex(/^[a-z0-9-]+\.(png|jpe?g|webp)$/, 'Use an image filename from the selected assets directory.'),
   alt: text,
   source_url: webUrl.optional(),
+});
+const pagePortrait = z.strictObject({
+  enabled: z.boolean().default(true),
+  images: z.array(portraitImage).default([])
+    .refine((images) => new Set(images.map(({ image }) => image)).size === images.length, 'List each portrait filename once.'),
+  autoplay: z.boolean().default(true),
+  interval_ms: z.number().int().min(2000).max(60000).default(6000),
+  caption: text.optional(),
+}).refine((portrait) => !portrait.enabled || portrait.images.length > 0,
+  { message: 'Choose at least one portrait or turn off the portrait on this page.', path: ['images'] });
+const personalPhoto = z.strictObject({
+  image: text.regex(/^[a-z0-9-]+\.(png|jpe?g|webp)$/, 'Use an image filename from the selected assets/images/personal directory.'),
+  alt: text,
+  caption: text,
+});
+const organizationLogo = z.strictObject({
+  image: text.regex(/^[a-z0-9-]+\.(png|jpe?g|webp)$/, 'Use an image filename from the selected assets/organizations directory.'),
+  alt: text,
 });
 const link = z.strictObject({ label: text, url: webUrl });
 const contactDetails = {
@@ -21,8 +40,6 @@ const contactDetails = {
 };
 const contactService = z.strictObject({
   id: slug, name: text, description: text,
-  audience: text.optional(),
-  primary: z.boolean().default(false),
   display_order: z.number().int().nonnegative().default(100),
   enabled: z.boolean().default(true),
   website: link.optional(), action: link,
@@ -40,6 +57,23 @@ const contactService = z.strictObject({
   ...contactDetails,
 });
 const refs = () => z.array(slug).default([]);
+
+const pageSkillGroups = z.array(z.strictObject({ name: text, skills: refs() })).default([])
+  .superRefine((groups, ctx) => {
+    const names = new Set<string>();
+    const skills = new Set<string>();
+    groups.forEach((group, groupIndex) => {
+      const name = group.name.replace(/\s+/g, ' ').toLocaleLowerCase('en-US');
+      if (names.has(name)) ctx.addIssue({ code: 'custom', path: [groupIndex, 'name'],
+        message: 'Each skill group needs a unique name; capitalization and repeated spaces are ignored.' });
+      names.add(name);
+      group.skills.forEach((id, skillIndex) => {
+        if (skills.has(id)) ctx.addIssue({ code: 'custom', path: [groupIndex, 'skills', skillIndex],
+          message: 'Select each skill only once on this page.' });
+        skills.add(id);
+      });
+    });
+  });
 export const resourceCategory = z.enum(['first-steps', 'reporting', 'avoid-scams', 'reports']);
 const githubAccount = text.regex(/^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$/, 'Use a GitHub user or organization name.');
 const githubRepository = text.regex(/^[A-Za-z0-9_.-]+$/, 'Use a repository name, without its owner or URL.')
@@ -57,7 +91,7 @@ const common = {
   links: z.array(link).default([]),
   editorial_note: text.optional(),
 };
-const aboutIcon = z.enum(['code', 'database', 'terminal', 'network', 'chart-no-axes-combined', 'chart-pie', 'hand-heart', 'users', 'landmark', 'bike', 'beer', 'box', 'mountain-snow', 'server', 'puzzle', 'shield-check', 'lightbulb']);
+const aboutIcon = z.enum(SUPPORTED_CONTENT_ICON_NAMES, { error: 'Choose an available Lucide icon.' });
 const aboutFields = {
   ...common, title: text,
   display_order: z.number().int().nonnegative().default(100),
@@ -106,29 +140,19 @@ const caseCategories = z.array(z.strictObject({
 export const schemas = {
   profile: z.strictObject({
     ...common, name: text, headline: text,
+    // Retain optional source summaries without asking for text the website never displays.
+    description_short: text.optional(),
     location: text.optional(),
-    cv: z.strictObject({
-      url: text.regex(/^\/(?:[A-Za-z0-9_-]+\/)*[A-Za-z0-9_-]+\.pdf$/, 'Use a root-relative PDF path from your public directory, such as /files/professional-cv.pdf.'),
-      label: text.optional(),
-    }).optional(),
-    portrait: z.union([
-      portraitImage,
-      z.strictObject({
-        images: z.array(portraitImage).min(1)
-          .refine((images) => new Set(images.map(({ image }) => image)).size === images.length, 'List each portrait filename once.'),
-        autoplay: z.boolean().default(true),
-        interval_ms: z.number().int().min(2000).max(60000).default(6000),
-      }),
-    ]).optional(),
-  }),
+    show_location: z.boolean().default(false),
+  }).refine((entry) => !entry.show_location || Boolean(entry.location),
+    { message: 'Enter a location before showing it on the website.', path: ['location'] }),
   contacts: z.strictObject({
     ...common,
     services_heading: text,
     services: z.array(contactService).default([])
-      .refine((items) => new Set(items.map(({ id }) => id)).size === items.length, 'Each service must have a unique id.')
-      .refine((items) => items.filter((item) => item.enabled && item.primary).length <= 1, 'Choose at most one enabled primary contact route.'),
+      .refine((items) => new Set(items.map(({ id }) => id)).size === items.length, 'Each service must have a unique id.'),
     social: z.strictObject({
-      title: text, name: text, description: text,
+      title: text, name: z.string().trim().optional(), description: text,
       enabled: z.boolean().default(true),
       ...contactDetails,
       links: z.array(link).default([]),
@@ -136,23 +160,27 @@ export const schemas = {
   }),
   experience: z.strictObject({
     ...common, organization: text, role: text, location: text.optional(),
+    logo: organizationLogo.optional(),
+    show_location: z.boolean().default(false),
     periods, highlights, expertise: refs(), projects: refs(),
     display_order: z.number().int().min(0).optional(),
     active_position: z.boolean().optional(),
   }).superRefine((entry, ctx) => {
+    if (entry.show_location && !entry.location) ctx.addIssue({ code: 'custom', path: ['location'], message: 'Enter a location before showing it on the website.' });
     if (!entry.periods.length && entry.active_position === undefined) ctx.addIssue({ code: 'custom', path: ['periods'], message: 'Supply employment periods, or active_position when dates are unknown.' });
     if (entry.periods.length && entry.active_position !== undefined) ctx.addIssue({ code: 'custom', path: ['active_position'], message: 'Current status is derived from known periods. Use active_position only when periods is empty.' });
   }),
   education: z.strictObject({
     ...common, institution: text, program: text,
+    logo: organizationLogo.optional(),
     credential_type: z.enum(['degree', 'attendance']),
     start: month, end: month.nullable(),
-    completion_status: z.enum(['completed', 'in_progress', 'not_completed', 'unspecified']),
+    completion_status: z.enum(['completed', 'in_progress', 'not_completed', 'unspecified']).optional(),
   }).refine((entry) => entry.end === null || entry.end >= entry.start,
     { message: 'End month must be on or after start month.', path: ['end'] }),
   credentials: z.strictObject({
     ...common, name: text, issuer: text,
-    credential_type: z.enum(['certification', 'certificate', 'training']),
+    credential_type: z.enum(['certification', 'certificate', 'training']).optional(),
     issued_year: z.number().int().min(1900).max(2200),
     expires_on: z.iso.date().optional(), verification_url: webUrl.optional(),
     course_url: webUrl.optional(),
@@ -175,7 +203,7 @@ export const schemas = {
     show_stats: z.boolean().default(true),
   }),
   skills: z.strictObject({
-    ...aboutFields, group: text, icon: aboutIcon.default('code'),
+    ...aboutFields, icon: aboutIcon.default('code'),
     proficiency: z.number().min(1).max(5).multipleOf(0.5).nullable().default(null),
     assessed_on: z.iso.date().nullable().default(null),
   }).refine(reviewedAboutEntry, { message: exampleMessage, path: ['content_kind'] }),
@@ -191,11 +219,7 @@ export const schemas = {
     ...common,
     title: text,
     categories: caseCategories,
-    subcategory_paths: z.array(z.array(slug).min(1)).default([])
-      .refine((paths) => new Set(paths.map((parts) => parts.join('/'))).size === paths.length,
-        'List each classification path once.'),
-  }).refine((chart) => chart.subcategory_paths.every((parts) => chart.categories.some(({ id }) => id === parts[0])),
-    { path: ['subcategory_paths'], message: 'Each classification path must start with a category from this chart.' }),
+  }),
   articles: z.strictObject({
     ...common, title: text,
     published_on: z.iso.date().nullable().default(null),
@@ -222,54 +246,50 @@ export const schemas = {
   cases: z.strictObject({
     ...common,
     title: text,
+    case_number: text.optional(),
+    scope_summary: text.optional(),
     chart: slug,
     category: slug,
-    // A scalar is one level; a list is one ordered path, never parallel tags.
-    subcategory: z.union([slug, z.array(slug).min(1)]).nullable().default(null),
+    // One ordered path, never parallel tags. An empty path is unspecified.
+    subcategory: z.array(slug).default([]),
     content_kind: z.enum(['example', 'case_study']).default('example'),
-    case_status: z.enum(['active', 'completed', 'on_hold', 'unspecified']).default('unspecified'),
-    opened_on: z.string().refine(isCaseDate, 'Use a quoted YYYY, YYYY-MM, or YYYY-MM-DD date.').nullable().default(null),
-    closed_on: z.string().refine(isCaseDate, 'Use a quoted YYYY, YYYY-MM, or YYYY-MM-DD date.').nullable().default(null),
+    opened_on: z.iso.date().nullable().default(null),
+    closed_on: z.iso.date().nullable().default(null),
     role: text.optional(),
-    experience: slug.optional(),
     networks: z.array(slug).default([]).refine((items) => new Set(items).size === items.length, 'Use each network once per case.'),
+    off_chain_leads: z.array(z.enum(OFF_CHAIN_LEAD_TYPES.map(({ id }) => id))).default([])
+      .refine((items) => new Set(items).size === items.length, 'Use each off-chain lead type once per case.'),
     assets: z.array(text).default([]),
     jurisdictions: z.array(text).default([]),
     services: z.array(z.enum(['tracing', 'osint', 'forensic-report', 'expert-report', 'deposition', 'testimony'])).default([]),
     metrics: z.strictObject({
-      addresses_reviewed: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER).nullable().default(null),
-      wallets_reviewed: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER).nullable().default(null),
-      transactions_reviewed: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER).nullable().default(null),
       reported_loss_usd: z.number().nonnegative().max(Number.MAX_SAFE_INTEGER).nullable().default(null),
       assets_reviewed_usd: z.number().nonnegative().max(Number.MAX_SAFE_INTEGER).nullable().default(null),
-      valuation_date: z.iso.date().nullable().default(null),
       amount_note: text.optional(),
-      reported_loss_valuation_date: z.iso.date().nullable().default(null),
-      reported_loss_note: text.optional(),
-      assets_reviewed_valuation_date: z.iso.date().nullable().default(null),
-      assets_reviewed_note: text.optional(),
-    }).default({ addresses_reviewed: null, wallets_reviewed: null, transactions_reviewed: null, reported_loss_usd: null, assets_reviewed_usd: null, valuation_date: null, reported_loss_valuation_date: null, assets_reviewed_valuation_date: null }),
+    }).default({ reported_loss_usd: null, assets_reviewed_usd: null }),
   }).superRefine((entry, ctx) => {
-    const opened = entry.opened_on ? caseDateRange(entry.opened_on) : undefined;
-    const closed = entry.closed_on ? caseDateRange(entry.closed_on) : undefined;
-    if (opened && closed && closed.end < opened.start) ctx.addIssue({ code: 'custom', path: ['closed_on'], message: 'Closing date cannot precede opening date.' });
-    if (entry.closed_on && entry.case_status !== 'completed') ctx.addIssue({ code: 'custom', path: ['closed_on'], message: 'Only completed cases can have a closing date.' });
+    if (entry.closed_on && entry.opened_on && entry.closed_on < entry.opened_on) ctx.addIssue({ code: 'custom', path: ['closed_on'], message: 'Closing date cannot precede opening date.' });
     if (entry.content_kind === 'example' && entry.publication_status === 'published') ctx.addIssue({ code: 'custom', path: ['content_kind'], message: 'Examples remain drafts and cannot be published as real cases.' });
-    for (const metric of caseMoneyMetrics(entry.metrics)) {
-      if (metric.value !== null && (!metric.note || !metric.valuationDate)) ctx.addIssue({ code: 'custom', path: ['metrics', metric.field], message: `${metric.label} requires a valuation date and amount note, using its own fields or the shared valuation_date and amount_note.` });
-    }
   }),
   pages: z.strictObject({
     ...common, title: text, profile: slug,
+    portrait: pagePortrait.optional(),
+    biography: text.optional(),
+    page_sections: z.array(z.strictObject({ id: slug, title: text, body: text })).default([])
+      .refine((sections) => new Set(sections.map(({ id }) => id)).size === sections.length, 'Each written section needs a unique id.'),
     contact: slug.optional(),
+    contact_cta: z.strictObject({ contact: slug, service: slug }).optional(),
+    compact_sections: z.array(z.enum(['expertise', 'projects'])).default([])
+      .refine((items) => new Set(items).size === items.length, 'List each compact section once.'),
+    personal_photos: z.array(personalPhoto).default([])
+      .refine((photos) => new Set(photos.map(({ image }) => image)).size === photos.length, 'List each personal photo filename once.'),
     github_groups: z.array(githubGroup).default([])
       .refine((items) => new Set(items.map((item) => item.id)).size === items.length, 'Each GitHub group needs a unique id.'),
     experience: refs(), education: refs(), credentials: refs(),
     expertise: refs(), projects: refs(), interests: refs(), callouts: refs(), charts: refs(),
-    repositories: refs(), skills: refs(), volunteering: refs(), memberships: refs(), daos: refs(),
+    repositories: refs(), volunteering: refs(), memberships: refs(), daos: refs(),
+    skill_groups: pageSkillGroups,
     skill_symbols: z.enum(['dots', 'stars']).default('dots'),
-    skill_group_order: z.array(text).default([])
-      .refine((items) => new Set(items).size === items.length, 'List each skill group once.'),
     organization_group_order: z.array(z.enum(['memberships', 'daos'])).length(2)
       .refine((items) => new Set(items).size === items.length, 'List memberships and daos once each.')
       .default(['memberships', 'daos']),
@@ -279,10 +299,16 @@ export const schemas = {
     navigation: z.strictObject({ label: text, order: z.number().int().min(0) }).optional(),
     experience_source: z.enum(['selected', 'all']).default('selected'),
     credentials_source: z.enum(['selected', 'all']).default('selected'),
-    issuer_order: z.array(text).default([]).refine((issuers) => new Set(issuers.map((issuer) => issuer.replace(/\s+/g, ' ').toLocaleLowerCase('en-US'))).size === issuers.length,
+    issuer_order: z.array(text).default([]).refine((issuers) => new Set(issuers.map(credentialIssuerKey)).size === issuers.length,
       'List each issuer once; capitalization and repeated spaces are ignored.'),
+    issuer_logos: z.array(z.strictObject({
+      issuer: text,
+      image: text.regex(/^[a-z0-9-]+\.(png|jpe?g|webp)$/, 'Use an image filename from the selected assets/organizations directory.'),
+      alt: text,
+    })).default([]).refine((logos) => new Set(logos.map(({ issuer }) => credentialIssuerKey(issuer))).size === logos.length,
+      'Add only one logo per issuer; capitalization and repeated spaces are ignored.'),
     timeline: timelineSchema,
-    section_order: z.array(z.enum(['experience', 'biography', 'expertise', 'projects', 'credentials', 'education', 'interests', 'github', 'skills', 'volunteering', 'organizations', 'callouts', 'charts', 'articles', 'resources'])).default(['charts', 'experience', 'expertise', 'projects', 'credentials', 'education', 'interests', 'callouts'])
+    section_order: z.array(z.enum(['experience', 'biography', 'page_sections', 'expertise', 'projects', 'credentials', 'education', 'interests', 'personal_photos', 'github', 'skills', 'volunteering', 'organizations', 'callouts', 'charts', 'articles', 'resources', 'contact_cta'])).default([])
       .refine((items) => new Set(items).size === items.length, 'Each section can appear only once.'),
   }),
 };
@@ -298,12 +324,12 @@ export const relationships: Partial<Record<CollectionName, Record<string, Collec
   experience: { expertise: 'expertise', projects: 'projects' },
   credentials: { expertise: 'expertise' },
   projects: { experience: 'experience', expertise: 'expertise' },
-  cases: { chart: 'charts', experience: 'experience' },
+  cases: { chart: 'charts' },
   articles: { related_cases: 'cases' },
   pages: {
     profile: 'profile', contact: 'contacts', experience: 'experience', education: 'education',
     credentials: 'credentials', expertise: 'expertise', projects: 'projects',
     interests: 'interests', callouts: 'callouts', charts: 'charts',
-    repositories: 'repositories', skills: 'skills', volunteering: 'activities', memberships: 'activities', daos: 'activities',
+    repositories: 'repositories', skill_groups: 'skills', volunteering: 'activities', memberships: 'activities', daos: 'activities',
   },
 };

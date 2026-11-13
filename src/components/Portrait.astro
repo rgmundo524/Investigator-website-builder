@@ -1,55 +1,49 @@
 ---
 import type { ImageMetadata } from 'astro';
-import type { CollectionEntry } from 'astro:content';
-import { Icon } from 'astro-icon/components';
-type Props = { profile: CollectionEntry<'profile'> };
-const { profile } = Astro.props;
-const portrait = profile.data.portrait;
-const photos = portrait ? ('images' in portrait ? portrait.images : [portrait]) : [];
-const gallery = portrait && 'images' in portrait ? portrait : undefined;
+import { Image } from 'astro:assets';
+import type { ContentData } from '../content/schemas';
+import { assertSupportedPhoto } from '../lib/image-privacy';
+import portraitRestore from '../scripts/portrait-restore.js?raw';
+type Props = { portrait?: ContentData<'pages'>['portrait']; name?: string; compact?: boolean };
+const { portrait, name, compact = false } = Astro.props;
+const photos = portrait?.enabled === false ? [] : portrait?.images ?? [];
 const files = import.meta.glob<{ default: ImageMetadata }>('@site-assets/*.{png,jpg,jpeg,webp}');
 const images = await Promise.all(photos.map(async (photo) => {
   const loader = Object.entries(files).find(([file]) => file.endsWith(`/${photo.image}`))?.[1];
   if (!loader) throw new Error(`Missing portrait asset: assets/${photo.image}`);
-  return { ...photo, source: (await loader()).default };
+  const source = (await loader()).default;
+  await assertSupportedPhoto(source);
+  return { ...photo, source };
 }));
 const multiple = images.length > 1;
+const continuityScope = JSON.stringify([Astro.site?.href ?? '', name ?? '']);
 ---
-{images.length > 0 && <figure class="portrait" data-portrait-carousel={multiple ? '' : undefined} data-autoplay={multiple ? String(gallery?.autoplay) : undefined} data-interval={multiple ? gallery?.interval_ms : undefined} aria-roledescription={multiple ? 'carousel' : undefined} aria-label={multiple ? `Photos of ${profile.data.name}` : undefined}>
+{images.length > 0 && <figure class:list={['portrait', { 'page-portrait': compact }]} data-portrait-rotation={multiple ? '' : undefined} data-portrait-scope={multiple ? continuityScope : undefined} data-autoplay={multiple ? String(portrait?.autoplay ?? true) : undefined} data-interval={multiple ? (portrait?.interval_ms ?? 6000) : undefined} aria-roledescription={multiple ? 'slideshow' : undefined} aria-label={multiple ? (name ? `Photos of ${name}` : 'Page photos') : undefined}>
   <div class="portrait-mat">
-    <div class="portrait-viewport" data-portrait-viewport>
+    <div class="portrait-viewport">
       <div class="portrait-slides">
-        {images.map((photo, index) => <div class="portrait-slide" data-portrait-slide hidden={index > 0} role={multiple ? 'group' : undefined} aria-roledescription={multiple ? 'slide' : undefined} aria-label={multiple ? `${index + 1} of ${images.length}` : undefined}>
-          <img src={photo.source.src} width={photo.source.width} height={photo.source.height} alt={photo.alt} loading={index === 0 ? 'eager' : 'lazy'} fetchpriority={index === 0 ? 'high' : 'auto'} decoding="async" />
+        {images.map((photo, index) => <div class="portrait-slide" data-portrait-slide data-portrait-photo={photo.image} hidden={index > 0} aria-hidden={index > 0 ? 'true' : 'false'}>
+          <Image src={photo.source} alt={photo.alt} width={compact ? 448 : undefined} widths={compact ? [224, 448] : undefined} sizes={compact ? '(max-width: 640px) 192px, 224px' : undefined} loading={index === 0 ? 'eager' : 'lazy'} fetchpriority={index === 0 ? 'high' : 'auto'} decoding="async" draggable="false" />
         </div>)}
       </div>
     </div>
-    {multiple && <div class="portrait-controls" data-portrait-controls hidden>
-      {gallery?.autoplay && <button type="button" class="portrait-rotation" data-portrait-toggle aria-label="Play automatic photo rotation">
-        <span data-portrait-play aria-hidden="true"><Icon name="lucide:play" /></span>
-        <span data-portrait-pause aria-hidden="true" hidden><Icon name="lucide:pause" /></span>
-        <span data-portrait-toggle-label>Play</span>
-      </button>}
-      <button type="button" data-portrait-prev aria-label="Previous profile photo"><Icon name="lucide:chevron-left" aria-hidden="true" /></button>
-      <span class="portrait-position" data-portrait-position aria-live="off" aria-atomic="true">1 / {images.length}</span>
-      <button type="button" data-portrait-next aria-label="Next profile photo"><Icon name="lucide:chevron-right" aria-hidden="true" /></button>
-    </div>}
   </div>
-  <figcaption><span>{profile.data.name}</span><span>{profile.data.blocks.portrait_caption ?? profile.data.headline}</span></figcaption>
+  {portrait?.caption && <figcaption>{portrait.caption}</figcaption>}
 </figure>}
+{multiple && <script is:inline set:html={portraitRestore}></script>}
 
 <script>
-  import { initPortraitCarousels, destroyPortraitCarousels } from '../lib/portrait-carousel';
-  initPortraitCarousels();
-  document.addEventListener('astro:page-load', initPortraitCarousels);
-  document.addEventListener('astro:before-swap', destroyPortraitCarousels);
-  window.addEventListener('pagehide', destroyPortraitCarousels);
-  window.addEventListener('pageshow', initPortraitCarousels);
+  import { initPortraitRotation, destroyPortraitRotation } from '../lib/portrait-carousel';
+  initPortraitRotation();
+  document.addEventListener('astro:page-load', initPortraitRotation);
+  document.addEventListener('astro:before-swap', destroyPortraitRotation);
+  window.addEventListener('pagehide', destroyPortraitRotation);
+  window.addEventListener('pageshow', initPortraitRotation);
   import.meta.hot?.dispose(() => {
-    destroyPortraitCarousels();
-    document.removeEventListener('astro:page-load', initPortraitCarousels);
-    document.removeEventListener('astro:before-swap', destroyPortraitCarousels);
-    window.removeEventListener('pagehide', destroyPortraitCarousels);
-    window.removeEventListener('pageshow', initPortraitCarousels);
+    destroyPortraitRotation();
+    document.removeEventListener('astro:page-load', initPortraitRotation);
+    document.removeEventListener('astro:before-swap', destroyPortraitRotation);
+    window.removeEventListener('pagehide', destroyPortraitRotation);
+    window.removeEventListener('pageshow', initPortraitRotation);
   });
 </script>

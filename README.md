@@ -1,220 +1,189 @@
-# Reymundo Gómez: personal site foundation
+# Blockchain Investigator Website Builder
 
-Astro, reusable Markdown, and a local devenv environment for
-`https://reymundo-gomez.info`.
+One shared static website builder, with a separate content folder for each
+investigator. Every site uses the same professional structure: Home, Work History,
+Casework, Credentials, About, Resources, and Contact. The case fields and charts
+are designed for blockchain investigations.
 
-This version has a focused professional landing page, a profile portrait, and
-supporting Work History, Casework, Credentials, About, Resources, and Contact pages. Reusable Markdown
-supplies the content across all routes. Content entries remain drafts for local
-development; an ordinary production build excludes them.
+The builder contains no investigator's personal catalog. Your biography, case
+summaries, contact details, and photos belong in your own content folder.
 
-## Use a separate content directory
+## Start on Windows
 
-The same builder can render another person's site without copying their content
-into this repository. Keep the Markdown, images, and `site.json` in a separate
-local folder or private repository:
+Download the Windows builder ZIP, choose **Extract All**, and double-click
+**Start Builder.cmd**. Install [Node.js 24](https://nodejs.org/en/download/) once,
+including npm. The launcher prepares dependencies and opens the local editor.
+Create or open a separate content folder, then choose **Preview & release →
+Start local preview** to keep the editor and website open together. Save,
+review, and apply changes to update that preview.
 
-```sh
-devenv shell -- site-export ../reymundo-site-data
-devenv -O env.SITE_DATA_DIR:string ../reymundo-site-data shell -- site-dev
-```
+No Git, Nix, WSL, or PowerShell configuration is required. The first start needs
+internet access. Keep the launcher window open; **Ctrl+C** stops this builder
+and its preview. See the [Windows guide](docs/windows.md) for the complete workflow.
 
-See [external content and migration](docs/external-content.md) for devenv settings,
-private repository separation, and the generic `examples/site-data` starter.
-The generic `examples/site-data` starter is now the default. Select your external content folder explicitly.
-The legacy bundled personal content is retained only for migration; use `SITE_DATA_DIR=.` explicitly to export it.
-For a complete generic dataset covering every current page, see the
-[starter editing map](examples/site-data/README.md). It includes seven fictional
-cases for the interactive charts and search.
-Profile filenames and optional photo carousels are also controlled by Markdown;
-see [profile photos](docs/portrait-photos.md).
+From a source checkout, the same launcher runs with `npm start`.
 
-## Start locally
+## Package the builder for colleagues
 
-Install Nix and [devenv 2.1 or newer](https://devenv.sh/getting-started/) on your computer, then
-run these commands from this repository:
+With Node.js 24 installed, create a fresh distribution outside this repository:
 
 ```sh
-devenv shell
-site-dev
+npm run builder:package -- ../investigator-website-builder-v1.0.0-windows.zip
 ```
 
-Open the localhost URL printed by Astro, normally `http://127.0.0.1:4321`.
-The shell opens in Fish using `shell: fish` in `devenv.yaml`. The Fish package,
-Node, npm, and default `SITE_DATA_DIR`/`TAILSCALE_HOSTNAME` values are declared in
-`devenv.nix`. Devenv installs Astro and the other project dependencies
-from `package-lock.json`, and exposes the local commands inside the environment.
-The first activation needs network access to download any uncached dependencies.
-Subsequent activations reuse the installation while the dependency inputs match.
+The ZIP includes the launcher, builder source, blank content pack, examples, and
+instructions. It excludes Git history, installed dependencies, generated sites,
+private editor history, reports, and selected personal content. Each Windows
+computer installs its own locked dependencies at first launch. Tests and GitHub
+workflows remain in the source repository.
 
-After `git pull`, you can keep using the same devenv shell. `npm run dev` now
-checks the dependency fingerprint before starting Astro and runs `npm ci` when
-the lockfile, declared dependencies, or Node runtime has changed. The checker
-uses only Node built-ins, so it also works when a newly added package is missing.
-The same check runs before content checks, tests, and previews. If installation
-fails, startup stops with the installation error; `npm ci` is the manual repair.
+This **builder ZIP** is different from the **blank content ZIP** and the
+**published website** described below. Only a generated published website is
+uploaded to Cloudflare. Update that investigator's existing Cloudflare project
+each time so its public address and domain stay connected.
 
-You can also run `devenv up` to initialize the environment and start the configured
-site process in one command.
+## Give an investigator a blank pack
 
-Node 24 is selected in `devenv.nix`. The npm dependency versions are pinned in
-`package-lock.json`, and `devenv.yaml` pins the nixpkgs input to an exact revision.
-The first `devenv shell` creates `devenv.lock`; commit that generated lockfile.
-Nix, devenv, and Fish are unavailable in this development workspace, so shell
-activation has not been executed here. Configuration follows the official devenv
-2.1+ options; Astro checks and builds are verified separately.
+Use Node.js 24 and run from this repository:
 
-The included `.envrc` is optional. If you use direnv, review it and run
-`direnv allow`. Otherwise, continue using `devenv shell`.
+```sh
+npm ci
+npm run site:template -- ../investigator-website-template.zip
+```
 
-## Commands
+Send that ZIP to the investigator. It contains an `investigator-site/` folder with
+`START-HERE.md`, the seven prepared pages, standard investigation categories,
+blank profile/contact forms, and copyable record templates. It contains no real
+case data, sample careers, or invented achievements.
+
+They unzip it, follow `START-HERE.md`, fill in the Markdown files, add photos, and
+return the folder. They do not need the builder or Node to fill in the pack.
+Keep filenames and identifiers as provided unless the instructions say otherwise.
+Unknown dates and amounts stay `null`; optional lists can stay empty.
+
+To create the same blank folder directly:
+
+```sh
+npm run site:init -- ../alex-site-data
+```
+
+Both commands require a new destination and refuse to overwrite existing work.
+The [blank pack](templates/investigator-site/START-HERE.md) is the recommended
+starting point. [Examples](examples/site-data/README.md) are separate references.
+
+## Build their site
+
+Point the builder at the completed, unzipped folder:
+
+```sh
+SITE_DATA_DIR=../alex-site-data npm run dev
+SITE_DATA_DIR=../alex-site-data npm run check
+```
+
+Relative paths resolve from the builder repository. Without `SITE_DATA_DIR`, the
+builder previews its blank pack; it never chooses someone's personal content.
+
+```text
+investigator-website-builder/    # Shared builder (this repository)
+  src/                           # Layout, components, case explorer, styling
+  scripts/                       # Validation, template ZIP, static build helpers
+  templates/investigator-site/   # Blank handoff pack
+  examples/site-data/            # Fictional examples, for reference only
+
+alex-site-data/                   # One investigator's completed pack
+  START-HERE.md                  # Fill-in instructions
+  site.json                      # Domain and appearance
+  content/                       # Biography, pages, jobs, cases, credentials
+  assets/                        # Photos and credential images
+  public/                        # Files deliberately published as-is
+  record-templates/              # Copy these when adding optional records
+```
+
+Only `content/`, selected image assets, and `public/` feed the website.
+Instructions and record templates are not rendered. Keep source reports and
+private review notes outside `assets/` and `public/`.
+
+## Site settings
+
+Edit the investigator's `site.json`:
+
+```json
+{
+  "version": 1,
+  "url": "https://investigator.example",
+  "language": "en",
+  "locale": "en-US",
+  "appearance": { "defaultTheme": "dark", "particles": true }
+}
+```
+
+Identity and writing live in Markdown. Site settings cover the domain, language,
+date/number formatting, and appearance. `SITE_URL` can override the domain for a
+particular build. See [configuration](docs/site-configuration.md).
+
+Published sites are indexable by search engines automatically. There is no
+indexing switch to fill in. Local development and draft review builds use
+`noindex`; this is unrelated to the built-in case search, which remains available.
+
+## Edit with Investigator Website Builder
+
+Investigator Website Builder provides forms for cases, profiles, pages and other records:
+
+```sh
+SITE_DATA_DIR=../alex-site-data npm run editor
+```
+
+Open the local address printed in the terminal. **Save working draft** keeps
+edits separate, **Review changes** shows the differences, and **Apply as draft**
+updates local website content for preview. The coordinator can apply reviewed
+records as published. Complex optional fields remain in **Additional fields ·
+JSON**; unchanged values are preserved.
+
+Working drafts and backups of replaced text stay in the selected folder's
+private `.website-editor/` directory. Keep it outside public assets. The editor
+and its preview are local only; **Build published release** creates an output
+folder and does not deploy it. See the [editor guide](docs/editor.md) for the full
+workflow, backup details and limits.
+
+## Review and publish
+
+All blank content starts as `publication_status: draft`. Preview it locally and
+mark completed, reviewed entries `published`. Normal builds include published
+entries only. An untouched pack produces a “Site in preparation” page.
 
 | Command | Purpose |
 | --- | --- |
-| `npm run dev` | Live local preview, including drafts |
-| `npm run check:content` | Check Markdown fields, dates, IDs, and references |
-| `npm run check` | Content checks and Astro/TypeScript diagnostics |
-| `npm run build` | Check and compile published content into `dist/` |
-| `npm run preview` | Inspect the published-content build locally |
-| `npm run build:drafts` | Check and compile all content into `dist-drafts/` |
-| `npm run preview:drafts` | Inspect the separate draft build locally |
-| `npm run content:export -- ../my-site-data` | Copy the selected content and assets to a new separate directory |
-| `npm test` | Check important invalid-content cases |
+| `npm run dev` | Local preview, including drafts |
+| `npm run check` | Validate content and check the site code |
+| `npm test` | Run behavioral tests |
+| `npm run build:drafts` | Build a review copy in `dist-drafts/` |
+| `npm run preview:drafts` | Preview that review copy |
+| `npm run build` | Build published content in `dist/` |
+| `npm run preview` | Preview the last published build |
+| `npm run site:package -- ../alex-site-release` | Build and copy the published website into a new upload folder |
 
-The devenv shell provides `site-dev`, `site-check`, `site-build`, `site-drafts`,
-and `site-export` as commands that always run from the builder root.
-`site-upgrade` previews recognized content migrations; `site-upgrade --write`
-applies them after saving backups, without changing publication status.
-`site-setup` remains available to force a clean dependency reinstall
-when troubleshooting; it is not required for normal startup.
+Prefix content-dependent commands with `SITE_DATA_DIR=../alex-site-data`.
+Packaging requires that selection explicitly. Run builds for different people
+sequentially in one checkout; each build replaces `dist/`.
 
-All starter entries are drafts, so the ordinary build intentionally shows only
-“Site in preparation.” Use `npm run dev` to see the populated content preview.
-Draft builds are stored separately to keep them out of a future `dist/` upload.
-Keep `CONTENT_PREVIEW` unset during normal builds. Preview builds always include `noindex`. Production also remains `noindex` until you
-explicitly set `"indexing": true` in the selected content directory's `site.json`.
-The 404 page remains excluded from indexing. See [publication readiness](docs/site-readiness.md).
+Use a separate Cloudflare Pages project for each investigator. The
+[Cloudflare guide](docs/cloudflare-pages.md) covers uploading the release folder
+and building from Git. The blank content ZIP is **not** a deployable website.
+Nothing is uploaded by these local commands.
 
-## Edit content
+## More detail
 
-See [publication readiness](docs/site-readiness.md) for stable case links, historical dates,
-network vocabulary, publication controls, and the pilot case-entry process.
-The [professional CV](docs/cv.md) is generated from the same Markdown and can be printed or saved as PDF.
+- [Content folder layout](docs/external-content.md)
+- [Writing records](docs/content-guide.md) and [case fields](docs/case-tracker.md)
+- [Page structure](docs/page-structure.md) and [photos](docs/portrait-photos.md)
+- [Contact details](docs/contacts.md), [credentials](docs/credentials.md), [About sections](docs/about-content.md)
+- [Local development and devenv](docs/local-development.md)
 
+This is the version-one format. There are no old-route redirects or previous
+configuration formats to maintain. This checkout is named
+`Investigator-website-builder`; the builder's folder name does not select an
+investigator's content.
 
-Start with [the content guide](docs/content-guide.md). Copy an appropriate file
-from `templates/` into the matching collection under `content/`.
-
-| Directory | Contents |
-| --- | --- |
-| `content/profile/` | Identity, portrait, and biography variants |
-| `content/contacts/` | Service enquiry cards, personal contact details, and social links |
-| `content/experience/` | Employment roles, date ranges, and achievement bullets |
-| `content/education/` | Degrees and attendance records |
-| `content/credentials/` | Certifications, certificates, and training |
-| `content/expertise/` | Areas of expertise |
-| `content/projects/` | Selected work and public project references |
-| `content/repositories/` | Curated GitHub project descriptions and widget inputs |
-| `content/skills/` | Individual skills, self-assessments, and supporting examples |
-| `content/activities/` | Volunteer roles, organization memberships, and DAO participation |
-| `content/interests/` | Personal interests |
-| `content/callouts/` | Independently reusable passages |
-| `content/charts/` | Category definitions for case-filtering sunburst charts |
-| `content/cases/` | One structured record per case, driving charts and statistics |
-| `content/resources/` | Official victim guidance, reporting and support links, and reference reports |
-| `content/articles/` | Reserved for future original writing; currently empty and inactive |
-| `content/pages/` | Page introductions and selected content IDs |
-| `templates/` | Copyable examples; never loaded into the site |
-| `src/content/schemas.ts` | Shared authoring rules |
-| `src/components/` | Reusable rendering components |
-| `src/pages/` | Website routes |
-
-Each file in `content/pages/` controls navigation, section order, and selections.
-Work History automatically discovers job files and uses their `display_order`.
-Its expertise and approach sections follow the professional biography in frosted
-panels. Edit `content/pages/work-history.md` for that selection and order, and
-`content/pages/about.md` for the personal introduction, hobby selection, and
-curated GitHub repository cards. See [GitHub projects](docs/github-projects.md)
-for the card integration and Go-Crypto organization setup.
-See [About content](docs/about-content.md) for the new sections, skill rating
-symbols, ordering, and copyable templates.
-The home page presents a small selection; the supporting pages provide the full
-background and details. Other content files supply the writing. See
-[the page structure guide](docs/page-structure.md) for the route map and portrait.
-Edit `content/contacts/reymundo.md` for the Contact page's organization cards and
-combined personal/social card. See [the contact guide](docs/contacts.md) for
-ordering, optional contact fields, and adding more services or social accounts.
-
-## Access through Tailscale
-
-Keep Astro bound to localhost. If using Tailscale Serve, set your exact hostname
-in `devenv.local.nix` or select it using devenv's native flag:
-
-```sh
-devenv -O env.TAILSCALE_HOSTNAME:string your-device.your-tailnet.ts.net shell -- site-dev
-```
-
-In a second terminal:
-
-```sh
-tailscale serve 4321
-```
-
-Use the HTTPS URL returned by Tailscale. Check Astro's printed port if 4321 is
-already occupied. This project does not start or configure Tailscale automatically.
-See [local development](docs/local-development.md) for persistent server notes.
-
-## Public hosting later
-
-Builds include a styled `404.html` for missing pages and an automatically generated
-`sitemap-index.xml` from the official `@astrojs/sitemap` integration. Sitemap URLs
-use the selected content directory's `site.json`, and the shared page layout links
-to the sitemap. See [missing pages and sitemap](docs/page-structure.md#missing-pages-and-sitemap).
-Draft visibility is unchanged. Search indexing is opt-in through `site.json`; it defaults to disabled.
-
-The intended host is Cloudflare Pages. Compile locally with the selected
-`SITE_DATA_DIR`, then upload `dist/` using Pages Direct Upload. The build needs
-Node 24 and access to both the builder and content directories; Cloudflare only
-needs the compiled output. GitHub Actions is not required. No Cloudflare project,
-DNS records, GitHub Actions workflows, or public site are created by this scaffold.
-
-## Resume content
-
-The content inventory remains in draft while its wording and source claims are
-reviewed. It includes professional history, credentials, selected work, interests,
-case examples, victim resources, contact details, and page selections. The About
-additions include seven unrated skills in three group cards, a curated repository,
-and clearly labelled volunteer and membership examples. Organizations contains
-Professional Organizations and DAOs. Run `npm run check:content` for the current count.
-
-Casework is a Markdown-backed tracker. Add a record under `content/cases/` and
-its chart count, category share, and statistics update from that record. Real
-cases and examples use separate datasets. Charts store no manual counts.
-
-Pagefind adds case search with per-case filters and direct links into summaries.
-Search refreshes from Markdown in local development and is generated with static
-builds. Content collections accept both `.md` and `.mdx`. Resources discovers
-individual files from `content/resources/`, groups them by category, and links
-directly to the original provider. See [resource authoring](docs/resources.md).
-The starter article is now a template, not displayed writing. The BDO publication
-remains in Selected Work. The article infrastructure can be enabled when there
-is original writing to feature; see [future articles and case search](docs/articles-and-search.md).
-
-Astro Icon supplies locally bundled Lucide icons. OpenGraph Canvas generates
-social sharing images from visible page, article, and case category content, using
-locally installed Inter fonts. Every page has an optional tsParticles network
-background with a remembered pause control and support for reduced motion.
-Node count, size, connection distance, and speed are set in `src/config/particles.json`.
-See [MDX and visual integrations](docs/mdx-and-visuals.md) for editing examples and settings.
-
-Start with [the case record guide](docs/case-tracker.md) and `templates/cases.md`.
-See [page structure](docs/page-structure.md) for job ordering, timeline behavior,
-navigation, the Contact page, portrait replacement, and dark mode.
-
-See [the resume review notes](docs/resume-content-review.md) for source ambiguities
-and details that still need confirmation. The supplied PDF, personal contact
-details, and professional references are not included. Draft status controls the
-website build; the Markdown and editorial notes remain visible in GitHub while
-the repository is public.
-
-This repository is not licensed for third-party reuse.
+This repository is an internal template. No third-party reuse license has been
+added. The shared source and each investigator's private content have separate
+ownership and publication decisions.

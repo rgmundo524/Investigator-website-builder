@@ -12,7 +12,7 @@ in
 
   env = {
     # Quoted paths stay outside the Nix store. Override locally or with -O.
-    SITE_DATA_DIR = lib.mkDefault "examples/site-data";
+    SITE_DATA_DIR = lib.mkDefault "templates/investigator-site";
     TAILSCALE_HOSTNAME = lib.mkDefault "";
   };
 
@@ -33,7 +33,10 @@ in
   scripts.site-build.exec = npmCommand "run build --";
   scripts.site-drafts.exec = npmCommand "run build:drafts --";
   scripts.site-export.exec = npmCommand "run content:export --";
-  scripts.site-upgrade.exec = npmCommand "run content:upgrade --";
+  scripts.site-init.exec = npmCommand "run site:init --";
+  scripts.site-template.exec = npmCommand "run site:template --";
+  scripts.site-package.exec = npmCommand "run site:package --";
+  scripts.site-editor.exec = npmCommand "run editor --";
 
   processes.site.exec = "site-dev";
 }

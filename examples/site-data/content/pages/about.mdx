@@ -9,26 +9,16 @@ navigation:
   label: About
   order: 50
 section_order:
-  - interests
+  - skills
   - volunteering
   - organizations
-  - skills
+  - interests
   - github
+  - biography
 skill_symbols: dots
-skill_group_order:
-  - Programming
-  - Systems
-  - Data and analysis
 organization_group_order:
   - memberships
   - daos
-skills:
-  - example-python
-  - example-sql
-  - example-linux
-  - example-networking
-  - example-analysis
-  - example-visualization
 volunteering:
   - example-volunteering
 memberships:
@@ -55,6 +45,26 @@ blocks:
   interests_heading: Hobbies
   github_heading: Projects on GitHub
   github_intro: Add reviewed public repositories before enabling these groups.
+biography: >-
+  Introduce yourself and explain your background, the work you do, and how you
+  help the people who visit your website.
+
+
+  Replace this example with your own biography. Add a portrait only after
+  putting the image in the selected assets directory.
+skill_groups:
+  - name: Programming
+    skills:
+      - example-python
+      - example-sql
+  - name: Systems
+    skills:
+      - example-linux
+      - example-networking
+  - name: Data and analysis
+    skills:
+      - example-analysis
+      - example-visualization
 ---
 
 import Callout from '@components/Callout.astro';

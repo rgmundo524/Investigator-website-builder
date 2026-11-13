@@ -1,31 +1,30 @@
 ---
 import { render, type CollectionEntry } from 'astro:content';
 import { Icon } from 'astro-icon/components';
-import { skillLevelLabel } from '../lib/about';
 type Props = { entry: CollectionEntry<'skills'>; symbols: 'dots' | 'stars' };
 const { entry, symbols } = Astro.props;
 const { Content } = await render(entry);
 const { proficiency } = entry.data;
-const rating = proficiency === null ? 'Not yet rated' : `${proficiency}/5 · ${skillLevelLabel(proficiency)}`;
-const ratingText = proficiency === null ? rating : `${proficiency} of 5, ${skillLevelLabel(proficiency)}, self-assessed`;
+const rating = proficiency === null ? undefined : `${proficiency}/5`;
+const ratingText = proficiency === null ? undefined : `${proficiency} of 5, self-assessed`;
 const icon = symbols === 'stars' ? 'lucide:star' : 'lucide:circle';
 ---
 <li class="skill-row" id={`skill-${entry.id}`}>
   <h4 id={`skill-${entry.id}-title`}><Icon class="skill-icon" name={`lucide:${entry.data.icon}`} aria-hidden="true" />{entry.data.title}</h4>
-  <div class="skill-rating">
-    {proficiency !== null && <meter class="sr-only" min="0" max="5" value={proficiency} aria-labelledby={`skill-${entry.id}-title`} aria-valuetext={ratingText}>{ratingText}</meter>}
+  {proficiency !== null && <div class="skill-rating">
+    <meter class="sr-only" min="0" max="5" value={proficiency} aria-labelledby={`skill-${entry.id}-title`} aria-valuetext={ratingText}>{ratingText}</meter>
     <span class="skill-symbols" aria-hidden="true">
       {Array.from({ length: 5 }, (_, index) => {
-        const fill = proficiency === null ? 0 : Math.max(0, Math.min(1, proficiency - index));
+        const fill = Math.max(0, Math.min(1, proficiency - index));
         return <span class="skill-symbol-slot">
           <Icon is:inline name={icon} class="skill-symbol" />
           {fill > 0 && <Icon is:inline name={icon} class="skill-symbol skill-symbol-fill is-filled" style={`clip-path: inset(0 ${(1 - fill) * 100}% 0 0)`} />}
         </span>;
       })}
     </span>
-    <span class="skill-rating-label" aria-hidden={proficiency !== null ? 'true' : undefined}>{rating}</span>
-  </div>
-  {entry.data.content_kind === 'example' && <p class="example-label">Example skill · illustrative rating</p>}
+    <span class="skill-rating-label" aria-hidden="true">{rating}</span>
+  </div>}
+  {entry.data.content_kind === 'example' && <p class="example-label">{proficiency === null ? 'Example skill' : 'Example skill · illustrative rating'}</p>}
   <details><summary>Details<span class="sr-only"> about {entry.data.title}</span></summary>
     <p>{entry.data.description_short}</p>
     {entry.data.assessed_on && <p class="meta">Self-assessed <time datetime={entry.data.assessed_on}>{entry.data.assessed_on}</time></p>}

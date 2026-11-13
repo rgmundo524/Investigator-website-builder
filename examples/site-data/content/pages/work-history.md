@@ -11,7 +11,6 @@ navigation:
 experience_source: all
 section_order:
   - experience
-  - biography
   - expertise
   - callouts
 expertise:

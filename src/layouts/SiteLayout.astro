@@ -7,15 +7,16 @@ import { navigationIcons } from '../lib/icons';
 import { openGraphPath } from '../lib/open-graph';
 import ParticleBackground from '../components/ParticleBackground.astro';
 import themeInit from '../scripts/theme-init.js?raw';
-import { mayIndexSite } from '../lib/indexing';
+import { siteSettings } from '../lib/site-settings';
+import { robotsDirective } from '../../scripts/site-data';
 
 type Props = {
   title: string;
   description: string;
   profile?: CollectionEntry<'profile'>;
-  socialImagePath?: string;
-  noindex?: boolean;
   article?: { published_on: string | null; updated_on: string | null };
+  noindex?: boolean;
+  socialImagePath?: string;
 };
 const { title, description } = Astro.props;
 const profile = Astro.props.profile ?? await pageProfile(await getEntry('pages', 'home'));
@@ -30,24 +31,24 @@ const displayTitle = profile && !title.includes(name) ? `${title} | ${name}` : t
 const currentPath = Astro.url.pathname;
 const canonical = new URL(currentPath, Astro.site!);
 const socialImage = new URL(Astro.props.socialImagePath ?? openGraphPath(currentPath), Astro.site!);
-const indexable = mayIndexSite(import.meta.env.SITE_INDEXING_ENABLED === true, includeDrafts, Boolean(profile), Astro.props.noindex);
-const identity = profile && currentPath === '/' && indexable ? {
-  '@context': 'https://schema.org', '@type': 'Person',
-  name: profile.data.name, description: profile.data.description_short,
-  jobTitle: profile.data.headline, url: Astro.site?.href,
+const darkTheme = siteSettings.appearance.defaultTheme === 'dark';
+const identity = profile && currentPath === '/' && !includeDrafts && !import.meta.env.DEV && !Astro.props.noindex ? {
+  '@context': 'https://schema.org', '@type': 'Person', name: profile.data.name,
+  description, jobTitle: profile.data.headline, url: Astro.site?.href,
 } : undefined;
 ---
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang={siteSettings.language} data-theme={siteSettings.appearance.defaultTheme} data-locale={siteSettings.locale}>
   <head>
     <meta charset="utf-8" />
     <script is:inline set:html={themeInit}></script>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="robots" content={indexable ? 'index, follow' : 'noindex, nofollow'} />
+    <meta name="robots" content={robotsDirective({ includeDrafts: includeDrafts || Astro.props.noindex, development: import.meta.env.DEV })} />
+    {!includeDrafts && !import.meta.env.DEV && !Astro.props.noindex && <link rel="sitemap" href="/sitemap-index.xml" />}
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
-    <link rel="sitemap" href="/sitemap-index.xml" />
     <meta property="og:site_name" content={name} />
+    <meta property="og:locale" content={siteSettings.ogLocale} />
     <meta property="og:type" content={Astro.props.article ? 'article' : 'website'} />
     <meta property="og:title" content={displayTitle} />
     <meta property="og:description" content={description} />
@@ -68,7 +69,7 @@ const identity = profile && currentPath === '/' && indexable ? {
     {identity && <script is:inline type="application/ld+json" set:html={JSON.stringify(identity).replace(/</g, '\\u003c')} />}
   </head>
   <body>
-    <ParticleBackground />
+    {siteSettings.appearance.particles && <ParticleBackground />}
     <a class="skip-link" href="#main">Skip to content</a>
     <header class="site-header">
       <div class="container header-inner">
@@ -76,13 +77,18 @@ const identity = profile && currentPath === '/' && indexable ? {
           {initials && <span class="monogram" aria-hidden="true">{initials}</span>}
           <span>{name}</span>
         </a>
-        {navigation.length > 0 && <nav class="site-nav" id="site-navigation" aria-label="Main navigation">
-          {navigation.map(({ id, label, url }) => <a href={url} aria-current={(id === 'home' ? currentPath === '/' : currentPath.startsWith(url)) || (id === 'casework' && (currentPath.startsWith('/investigations/') || currentPath.startsWith('/cases/'))) ? 'page' : undefined}>{navigationIcons[id] && <Icon name={navigationIcons[id]} aria-hidden="true" />}<span>{label}</span></a>)}
-        </nav>}
-        <div class="header-actions">
-          <button class="theme-toggle" type="button" aria-label="Dark mode" aria-pressed="true" title="Switch to light mode" hidden><Icon name="lucide:moon" class="theme-moon" aria-hidden="true" /><Icon name="lucide:sun" class="theme-sun" aria-hidden="true" /></button>
-          {contactPage && <a class="button button-primary header-contact" href="/contact/" aria-current={currentPath.startsWith('/contact/') ? 'page' : undefined}>Contact</a>}
-          {navigation.length > 0 && <button class="navigation-toggle" type="button" aria-controls="site-navigation" aria-expanded="false" hidden><span class="navigation-toggle-icon" aria-hidden="true"><span></span><span></span><span></span></span><span>Menu</span></button>}
+        <button class="menu-toggle" type="button" aria-label="Open navigation menu" aria-expanded="false" aria-controls="site-navigation" data-menu-toggle hidden>
+          <Icon name="lucide:menu" class="menu-open" aria-hidden="true" />
+          <Icon name="lucide:x" class="menu-close" aria-hidden="true" />
+        </button>
+        <div class="header-menu" id="site-navigation" data-header-menu>
+          {navigation.length > 0 && <nav class="site-nav" aria-label="Main navigation">
+            {navigation.map(({ id, label, url }) => <a href={url} aria-current={(id === 'home' ? currentPath === '/' : currentPath.startsWith(url)) || (id === 'casework' && currentPath.startsWith('/investigations/')) ? 'page' : undefined}>{navigationIcons[id] && <Icon name={navigationIcons[id]} aria-hidden="true" />}<span>{label}</span></a>)}
+          </nav>}
+          <div class="header-actions">
+            <button class="theme-toggle" type="button" aria-label="Dark mode" aria-pressed={darkTheme} title={darkTheme ? 'Switch to light mode' : 'Switch to dark mode'} hidden><Icon name="lucide:moon" class="theme-moon" aria-hidden="true" /><Icon name="lucide:sun" class="theme-sun" aria-hidden="true" /></button>
+            {contactPage && <a class="button button-primary header-contact" href="/contact/" aria-current={currentPath.startsWith('/contact/') ? 'page' : undefined}>Contact</a>}
+          </div>
         </div>
       </div>
     </header>
@@ -98,19 +104,11 @@ const identity = profile && currentPath === '/' && indexable ? {
       </div>
     </footer>
     <script>
-      import { mountSiteNavigation } from '../scripts/navigation';
-      const cleanupNavigation = mountSiteNavigation();
-      import.meta.hot?.dispose(cleanupNavigation);
-      // Keep anchors and keyboard focus below the sticky header as its links wrap.
+      import { initSiteHeader } from '../scripts/site-header';
       const header = document.querySelector<HTMLElement>('.site-header');
       if (header) {
-        const updateHeaderHeight = () => {
-          document.documentElement.style.setProperty('--site-header-height', `${Math.ceil(header.getBoundingClientRect().height)}px`);
-        };
-        updateHeaderHeight();
-        const headerObserver = new ResizeObserver(updateHeaderHeight);
-        headerObserver.observe(header);
-        import.meta.hot?.dispose(() => headerObserver.disconnect());
+        const cleanup = initSiteHeader(header);
+        import.meta.hot?.dispose(cleanup);
       }
     </script>
   </body>

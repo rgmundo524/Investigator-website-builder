@@ -4,8 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { builderRoot, resolveSiteData } from './site-data';
 import { loadContent } from './content';
 
-export async function exportContent(destination: string) {
-  const source = resolveSiteData();
+export async function exportContent(destination: string, source = resolveSiteData()) {
   await loadContent(source.contentDir);
   const requested = path.resolve(builderRoot, destination);
   const target = path.join(await realpath(path.dirname(requested)), path.basename(requested));

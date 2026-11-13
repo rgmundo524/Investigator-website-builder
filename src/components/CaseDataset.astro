@@ -1,37 +1,37 @@
 ---
 import type { CollectionEntry } from 'astro:content';
 import CaseChart from './CaseChart.astro';
-import { caseStatistics, readable, type CaseStudy, type CaseKind } from '../lib/cases';
-import { caseVisuals } from '../lib/case-visuals';
-import { includeDrafts } from '../lib/content';
-type Props = { charts: CollectionEntry<'charts'>[]; studies: CaseStudy[]; kind: CaseKind };
-const { charts, studies, kind } = Astro.props;
+import { caseStatistics, readable, type CaseStudy } from '../lib/cases';
+import type { CaseVisualDataset } from '../lib/case-visuals';
+import { siteSettings } from '../lib/site-settings';
+type Props = { charts: CollectionEntry<'charts'>[]; studies: CaseStudy[]; visuals: CaseVisualDataset; introduction?: string };
+const { charts, studies, visuals, introduction } = Astro.props;
+const { kind } = visuals;
 const stats = caseStatistics(studies);
-const visuals = caseVisuals(charts, studies, kind, includeDrafts);
-const money = (amount: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(amount);
+const money = (amount: number) => new Intl.NumberFormat(siteSettings.locale, { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(amount);
+const financialMetrics = [{ label: 'Reported losses', ...stats.reportedLoss }, { label: 'Assets reviewed', ...stats.assetsReviewed }].filter(({ coverage }) => coverage > 0);
 ---
 <div class="case-dataset" data-dataset={kind}>
   {kind === 'example' && <p class="notice">Illustrative dataset. These examples demonstrate the case records and statistics; they do not represent actual engagements.</p>}
-  {kind === 'case_study' && <p class="meta">Statistics cover the case records included here. Historical cases are added as they are documented.</p>}
+  {kind === 'case_study' && introduction && <p class="meta">{introduction}</p>}
   <dl class="stat-grid">
-    <div><dt>{kind === 'example' ? 'Example cases' : 'Recorded cases'}</dt><dd>{stats.total}</dd></div>
-    <div><dt>Active</dt><dd>{stats.active}</dd></div>
-    <div><dt>Completed</dt><dd>{stats.completed}</dd></div>
-    <div><dt>Networks involved</dt><dd>{stats.networks.length}</dd></div>
+    <div><dt>{kind === 'example' ? 'Example cases' : 'Recorded cases'}</dt><dd>{stats.total.toLocaleString(siteSettings.locale)}</dd></div>
+    {visuals.groups.filter(({ total }) => total > 0).map(({ title, total }) => <div><dt>{title}</dt><dd>{total.toLocaleString(siteSettings.locale)}</dd></div>)}
+    <div><dt>Networks involved</dt><dd>{stats.networks.length.toLocaleString(siteSettings.locale)}</dd></div>
   </dl>
   {studies.length > 0 && <>
     <details class="statistics-details"><summary>Explore case statistics</summary>
       <div class="statistics-grid">
-        {[{ title: 'Year opened', rows: stats.years }, { title: 'Case status', rows: stats.statuses }, { title: 'Networks', rows: stats.networks.map((row) => ({ ...row, label: readable(row.label) })) }, { title: 'Services', rows: stats.services.map((row) => ({ ...row, label: readable(row.label) })) }].map(({ title, rows }) => <div>
-          <h3>{title}</h3>{rows.length ? <table class="data-table"><thead><tr><th scope="col">{title}</th><th scope="col">Cases</th></tr></thead><tbody>{rows.map(({ label, count }) => <tr><th scope="row">{label}</th><td>{count}</td></tr>)}</tbody></table> : <p>No details recorded yet.</p>}
+        {[{ title: 'Engagement year, when known', rows: stats.years }, { title: 'Networks', rows: stats.networks.map((row) => ({ ...row, label: readable(row.label) })) }, { title: 'Services', rows: stats.services.map((row) => ({ ...row, label: readable(row.label) })) }].map(({ title, rows }) => <div>
+          <h3>{title}</h3>{rows.length ? <table class="data-table"><thead><tr><th scope="col">{title}</th><th scope="col">Cases</th></tr></thead><tbody>{rows.map(({ label, count }) => <tr><th scope="row">{label}</th><td>{count.toLocaleString(siteSettings.locale)}</td></tr>)}</tbody></table> : <p>No details recorded yet.</p>}
         </div>)}
       </div>
       <p class="meta">A case may involve multiple networks and services. These counts can overlap.</p>
-      <div class="financial-stats">{[{ label: 'Reported losses', ...stats.reportedLoss }, { label: 'Assets reviewed', ...stats.assetsReviewed }].map((metric) => <div>
-        <h3>{metric.label}</h3><p class="financial-total">{metric.coverage ? money(metric.total) : 'Not recorded'}</p>
-        <p class="meta">{metric.coverage} of {stats.total} cases have this amount recorded. USD values use each case’s documented valuation date.</p>
+      {financialMetrics.length > 0 && <><div class="financial-stats">{financialMetrics.map((metric) => <div>
+        <h3>{metric.label}</h3><p class="financial-total">{money(metric.total)}</p>
+        <p class="meta">{metric.coverage.toLocaleString(siteSettings.locale)} of {stats.total.toLocaleString(siteSettings.locale)} cases have this amount recorded. USD values use transaction-time prices unless a case’s amount note states otherwise.</p>
       </div>)}</div>
-      <p class="meta">Reported losses and assets reviewed measure different things. They are not combined and do not describe recoveries.</p>
+      <p class="meta">Reported losses and assets reviewed measure different things. They are not combined and do not describe recoveries.</p></>}
     </details>
   </>}
   <div class="case-chart-grid">{visuals.groups.map((visual) => <CaseChart entry={charts.find(({ id }) => id === visual.id)!} visual={visual} />)}</div>

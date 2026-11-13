@@ -2,12 +2,11 @@
 import type { CollectionEntry } from 'astro:content';
 import ActivityCard from './ActivityCard.astro';
 import { selected } from '../lib/content';
-import { orderAboutEntries } from '../lib/about';
 type Props = { page: CollectionEntry<'pages'> };
 const { page } = Astro.props;
 const labels = { memberships: 'Professional Organizations', daos: 'DAOs (Decentralized Autonomous Organization)' };
 const groups = await Promise.all(page.data.organization_group_order.map(async (kind) => ({
-  kind, entries: orderAboutEntries(await selected('activities', page.data[kind])),
+  kind, entries: await selected('activities', page.data[kind]),
 })));
 ---
 {groups.some(({ entries }) => entries.length > 0) && <section class="container content-section" id="section-organizations" aria-labelledby="heading-organizations">

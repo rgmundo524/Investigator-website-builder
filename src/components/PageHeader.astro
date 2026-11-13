@@ -1,0 +1,24 @@
+---
+import type { ContentData } from '../content/schemas';
+import PagePortrait from './PagePortrait.astro';
+
+type Props = { portrait?: ContentData<'pages'>['portrait']; name?: string; contained?: boolean };
+const { portrait, name, contained = true } = Astro.props;
+const hasPortrait = portrait?.enabled !== false && Boolean(portrait?.images.length);
+---
+<header class:list={['page-intro', { container: contained, 'page-intro-with-portrait': hasPortrait }]}>
+  <div class="page-intro-copy"><slot /></div>
+  {hasPortrait && <PagePortrait portrait={portrait} name={name} />}
+</header>
+
+<style>
+  .page-intro-copy { min-width: 0; }
+  .page-intro-with-portrait { display: grid; grid-template-columns: minmax(0, 1fr) 14rem; align-items: start; gap: clamp(1.5rem, 4vw, 4rem); }
+  @media (max-width: 760px) {
+    .page-intro-with-portrait { grid-template-columns: minmax(0, 1fr) 11rem; gap: 1.5rem; }
+  }
+  @media (max-width: 640px) {
+    .page-intro-with-portrait { grid-template-columns: minmax(0, 1fr); }
+    .page-intro-with-portrait :global(.page-portrait) { max-width: 12rem; }
+  }
+</style>

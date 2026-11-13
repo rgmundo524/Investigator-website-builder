@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <title>Investigator Website Builder</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <script src="/app.js" type="module"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">Skip to website editor</a>
+    <svg class="icon-library" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <symbol id="icon-cases" viewBox="0 0 24 24"><path d="M8 6V4h8v2M3 7h18v13H3zM3 11h18M10 11v3h4v-3" /></symbol>
+      <symbol id="icon-profile" viewBox="0 0 24 24"><circle cx="9" cy="7" r="3" /><path d="M3 21v-3a6 6 0 0 1 12 0v3M17 5h4M17 10h4M18 15h3" /></symbol>
+      <symbol id="icon-categories" viewBox="0 0 24 24"><path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z" /></symbol>
+      <symbol id="icon-review" viewBox="0 0 24 24"><path d="M8 3H4v18h16V3h-4M8 2h8v4H8zM8 11l2 2 5-5M8 17h8" /></symbol>
+      <symbol id="icon-preview" viewBox="0 0 24 24"><path d="M2 4h20v14H2zM8 22h8M12 18v4M2 8h20" /><path d="m10 11 4 2-4 2z" /></symbol>
+      <symbol id="icon-folder" viewBox="0 0 24 24"><path d="M3 6h7l2 2h9v12H3zM3 6V4h7l2 2" /></symbol>
+      <symbol id="icon-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 5 5" /></symbol>
+      <symbol id="icon-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></symbol>
+      <symbol id="icon-arrow" viewBox="0 0 24 24"><path d="M5 12h14m-5-5 5 5-5 5" /></symbol>
+      <symbol id="icon-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6" /></symbol>
+      <symbol id="icon-external" viewBox="0 0 24 24"><path d="M14 3h7v7M21 3 10 14M10 3H3v18h18v-7" /></symbol>
+    </svg>
+    <div class="workspace-shell">
+      <aside class="sidebar" aria-label="Website builder navigation">
+        <a class="brand" href="#cases" aria-label="Investigator Website Builder, cases">
+          <span class="brand-mark" aria-hidden="true">i<span></span></span>
+          <span>Investigator<span class="brand-subtitle">WEBSITE BUILDER</span></span>
+        </a>
+        <p class="sidebar-label">YOUR CONTENT</p>
+        <nav id="main-nav" class="main-nav" aria-label="Main">
+          <button type="button" class="nav-item is-current" data-view="cases"><svg class="icon" aria-hidden="true"><use href="#icon-cases"></use></svg><span>Cases</span><span class="nav-count" id="case-count">—</span></button>
+          <button type="button" class="nav-item" data-view="categories"><svg class="icon" aria-hidden="true"><use href="#icon-categories"></use></svg><span>Categories</span></button>
+          <button type="button" class="nav-item" data-view="content"><svg class="icon" aria-hidden="true"><use href="#icon-profile"></use></svg><span>Profile &amp; pages</span></button>
+          <button type="button" class="nav-item" data-view="review"><svg class="icon" aria-hidden="true"><use href="#icon-review"></use></svg><span>Review changes</span><span class="nav-count" id="review-count">0</span></button>
+          <button type="button" class="nav-item" data-view="release"><svg class="icon" aria-hidden="true"><use href="#icon-preview"></use></svg><span>Preview &amp; release</span></button>
+        </nav>
+        <div class="sidebar-bottom"><span class="local-dot" aria-hidden="true"></span><span>Local website builder</span><p>Save, review, then publish.<br>Your website stays separate.</p></div>
+      </aside>
+      <div class="workspace-body">
+        <header class="workspace-header">
+          <div class="active-investigator"><span class="eyebrow">SELECTED INVESTIGATOR</span><strong id="investigator-name">Choose a content folder</strong><span id="active-folder" class="folder-path">No folder selected</span></div>
+          <button id="change-folder" class="button button-subtle" type="button"><svg class="icon" aria-hidden="true"><use href="#icon-folder"></use></svg><span>Change folder</span></button>
+        </header>
+        <div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
+        <main id="main-content" tabindex="-1"><div class="loading-state"><span class="loading-dot"></span>Opening the website builder…</div></main>
+        <footer class="workspace-footer"><span>Investigator Website Builder</span><span>Changes are local until you prepare and upload a release.</span></footer>
+      </div>
+    </div>
+    <dialog id="folder-dialog" class="folder-dialog" aria-labelledby="folder-dialog-title">
+      <form id="folder-form">
+        <div class="dialog-heading"><div><p class="eyebrow">WEBSITE CONTENT</p><h2 id="folder-dialog-title">Select your content folder</h2></div><button type="button" class="icon-button" id="close-folder-dialog" aria-label="Close folder selection">×</button></div>
+        <p class="muted">Choose the folder containing your <code>site.json</code> and <code>content</code> directory.</p>
+        <label for="folder-input">Folder path</label><input id="folder-input" name="folder" type="text" autocomplete="off" spellcheck="false" placeholder="/path/to/investigator-site" required />
+        <p id="folder-error" class="field-error" role="alert" hidden></p>
+        <div id="recent-folders"></div>
+        <div class="dialog-actions"><button id="cancel-folder" type="button" class="button button-subtle">Cancel</button><button type="submit" class="button button-primary">Open content folder<svg class="icon" aria-hidden="true"><use href="#icon-arrow"></use></svg></button></div>
+      </form>
+    </dialog>
+  </body>
+</html>

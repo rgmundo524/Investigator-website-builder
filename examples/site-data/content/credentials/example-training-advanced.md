@@ -5,7 +5,6 @@ publication_status: draft
 name: Example advanced course
 issuer: Example Training Provider
 issued_year: 2025
-credential_type: training
 description_short: Fictional credential example. Replace with verified training details.
 course_url: https://example.com/training/example-training-advanced/
 expertise:

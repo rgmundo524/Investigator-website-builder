@@ -36,8 +36,7 @@ See [JavaScript options](https://devenv.sh/languages/javascript/) and
 Use `devenv.local.nix` or `devenv.local.yaml` for machine-specific overrides; both
 are ignored by Git. The optional `.envrc` enables direnv integration. Export
 `TAILSCALE_HOSTNAME` in the shell before starting Astro if using Tailscale Serve.
-The `.env.example` documents that variable; the Astro config intentionally reads
-the shell environment, rather than assuming a copied `.env` file is loaded.
+Astro reads the shell environment rather than loading a copied `.env` file.
 
 ## Serving through Tailscale
 
@@ -66,7 +65,7 @@ Git integration can later have automatic builds disabled while still accepting
 manual Wrangler deployments. A Direct Upload project cannot later enable Git
 integration without creating a new project.
 
-Add `reymundo-gomez.info` to the Pages project's custom domains at launch. Serving
+Add the investigator's domain to the Pages project's custom domains at launch. Serving
 the apex through Pages requires Cloudflare nameservers; registration can remain
 with the existing registrar. No GitHub Actions workflow is needed.
 

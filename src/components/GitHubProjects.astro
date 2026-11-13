@@ -3,12 +3,11 @@ import type { CollectionEntry } from 'astro:content';
 import { Icon } from 'astro-icon/components';
 import RepositoryCard from './RepositoryCard.astro';
 import { selected } from '../lib/content';
-import { orderAboutEntries } from '../lib/about';
 
 type Props = { page: CollectionEntry<'pages'> };
 const { page } = Astro.props;
 const groups = page.data.github_groups.filter((group) => group.enabled && group.account);
-const repositories = orderAboutEntries(await selected('repositories', page.data.repositories));
+const repositories = await selected('repositories', page.data.repositories);
 ---
 {groups.length > 0 && <section class="container content-section" id="section-github" aria-labelledby="heading-github">
   <div class="section-heading"><div>

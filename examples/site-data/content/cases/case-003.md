@@ -11,7 +11,6 @@ subcategory:
   - bridge-exploit
   - contract-vulnerability
 content_kind: example
-case_status: on_hold
 opened_on: "2025-06-01"
 closed_on: null
 role: Example investigator role
@@ -24,12 +23,9 @@ services:
   - tracing
   - forensic-report
 metrics:
-  wallets_reviewed: 20
-  transactions_reviewed: 340
   reported_loss_usd: 75000
   assets_reviewed_usd: null
-  valuation_date: "2025-06-01"
-  amount_note: Fictional example value. This is not an actual loss or recovery amount.
+  amount_note: "Fictional example value. This is not an actual loss or recovery amount. Example valuation date: 2025-06-01."
 blocks:
   chart_label: Example 003
 editorial_note: All case details and numeric values are fictional. Keep content_kind

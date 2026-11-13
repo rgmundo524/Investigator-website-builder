@@ -1,46 +1,34 @@
 import { defineConfig } from 'astro/config';
 import caseSearch from './integrations/case-search';
+import imagePrivacy from './integrations/image-privacy';
 import mdx from '@astrojs/mdx';
 import sitemap from '@astrojs/sitemap';
 import icon from 'astro-icon';
 import { resolveSiteData, builderRoot } from './scripts/site-data';
+import { astroWorkspace, prepareAstroWorkspace } from './scripts/astro-workspace';
 import path from 'node:path';
-import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
 
 const data = resolveSiteData();
-const outDir = process.env.CONTENT_PREVIEW === 'drafts' ? './dist-drafts' : './dist';
-let resolvedOutputDirectory = new URL(`${outDir}/`, import.meta.url);
-const sitemapOutput = { name: 'sitemap-output-directory', hooks: {
-  'astro:config:done': ({ config }) => { resolvedOutputDirectory = config.outDir; },
-} };
-
-const sitemapIntegration = sitemap({
-  filter: (page) => {
-    const pathname = new URL(page).pathname;
-    if (!['/expertise/', '/articles/'].includes(pathname)) return true;
-    // Astro.redirect() inside a page produces HTML rather than a redirect route.
-    // Inspect these legacy URLs after rendering so a future real Articles page stays listed.
-    const html = readFileSync(fileURLToPath(new URL(`${pathname.slice(1)}index.html`, resolvedOutputDirectory)), 'utf8');
-    return !/<meta\b[^>]*\bhttp-equiv\s*=\s*["']refresh["']/i.test(html);
-  },
-});
+const workspace = astroWorkspace(data.cacheKey);
+prepareAstroWorkspace(workspace);
 
 const allowedHosts = (process.env.TAILSCALE_HOSTNAME ?? '')
   .split(',').map((host) => host.trim()).filter(Boolean);
 
 export default defineConfig({
+  // Astro dev writes generated content below root/.astro, independently of
+  // cacheDir. A site-specific root prevents one running preview replacing
+  // another site's content; source files and output remain in the builder.
+  ...workspace,
   site: data.url,
   publicDir: data.publicDir,
-  cacheDir: `./.astro/cache/${data.cacheKey}/${process.env.CONTENT_PREVIEW === 'drafts' ? 'drafts' : 'published'}/`,
   vite: {
-    define: { 'import.meta.env.SITE_INDEXING_ENABLED': JSON.stringify(data.indexing) },
+    define: { __SITE_SETTINGS__: JSON.stringify(data.settings) },
     resolve: { alias: { '@site-assets': data.assetsDir, '@components': path.join(builderRoot, 'src/components') } },
     server: { fs: { allow: [builderRoot, data.contentDir, data.assetsDir] } },
   },
   output: 'static',
-  integrations: [mdx(), sitemapOutput, sitemapIntegration, icon({ include: { lucide: ['house', 'briefcase-business', 'search', 'badge-check', 'fingerprint', 'book-open', 'mail', 'moon', 'sun', 'arrow-right', 'arrow-up-right', 'external-link', 'lightbulb', 'circle-alert', 'chevron-down', 'chevron-left', 'chevron-right', 'pause', 'play', 'circle', 'star', 'code', 'database', 'terminal', 'network', 'chart-no-axes-combined', 'chart-pie', 'hand-heart', 'users', 'landmark', 'bike', 'beer', 'box', 'mountain-snow', 'server', 'puzzle', 'shield-check'] } }), caseSearch()],
+  integrations: [mdx(), ...(process.env.CONTENT_PREVIEW === 'drafts' ? [] : [sitemap({ filter: page => !['/404/', '/404.html'].includes(new URL(page).pathname) })]), icon({ include: { lucide: ['*'] } }), caseSearch(), imagePrivacy()],
   trailingSlash: 'always',
-  outDir,
   server: { host: '127.0.0.1', port: 4321, allowedHosts },
 });

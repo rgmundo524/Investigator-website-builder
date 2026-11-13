@@ -2,6 +2,7 @@
 import { render, type CollectionEntry } from 'astro:content';
 import { Icon } from 'astro-icon/components';
 import { formatPeriods } from '../lib/dates';
+import { siteSettings } from '../lib/site-settings';
 type Props = { entry: CollectionEntry<'activities'>; grouped?: boolean };
 const { entry, grouped = false } = Astro.props;
 const Heading = grouped ? 'h4' : 'h3';
@@ -15,7 +16,7 @@ const { Content } = await render(entry);
   {entry.data.content_kind === 'example' && <p class="example-label">Example entry · not a claimed affiliation</p>}
   {entry.data.organization && <p class="entry-organization">{entry.data.organization}</p>}
   {(entry.data.role || entry.data.participation) && <p class="meta">{[entry.data.role, entry.data.participation].filter(Boolean).join(' · ')}</p>}
-  {entry.data.periods.length > 0 && <p class="meta">{formatPeriods(entry.data.periods)}</p>}
+  {entry.data.periods.length > 0 && <p class="meta">{formatPeriods(entry.data.periods, undefined, siteSettings.locale)}</p>}
   <p>{entry.data.description_short}</p>
   <details><summary>Read more</summary><div class="prose"><Content /></div></details>
   {entry.data.links.length > 0 && <ul class="links">{entry.data.links.map((link) => <li><a href={link.url}>{link.label}</a></li>)}</ul>}

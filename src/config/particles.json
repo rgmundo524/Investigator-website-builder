@@ -7,7 +7,7 @@
     "min": 3,
     "max": 6
   },
-  "connectionDistance": 240,
-  "hoverDistance": 360,
+  "connectionDistance": 350,
+  "hoverDistance": 460,
   "speed": 0.5
 }

@@ -49,7 +49,6 @@ Copy `templates/credentials.md` and set its fields:
 | --- | --- |
 | `name` | Exact name of the credential or training program |
 | `issuer` | Issuing authority used for grouping |
-| `credential_type` | `certification`, `certificate`, or `training` |
 | `issued_year` | Recorded award or training year |
 | `description_short` | Short summary on the credential card |
 | Markdown body | Longer description under “Read more” |
@@ -58,6 +57,9 @@ Copy `templates/credentials.md` and set its fields:
 | `expires_on` | Optional known expiration date in quoted YYYY-MM-DD format |
 | `badge` | Optional local badge or seal, as below |
 | `links` | Additional named links, such as a historical program announcement |
+
+Use the official program or credential name. No separate certificate,
+certification, or training classification is needed or displayed.
 
 A training-program link does not replace personal verification. Existing names
 and dates remain based on the resume; current course pages may use newer course

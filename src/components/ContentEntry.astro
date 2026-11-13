@@ -1,10 +1,15 @@
 ---
 import { render, type CollectionEntry } from 'astro:content';
 import { Icon } from 'astro-icon/components';
-import { formatMonth, formatPeriods } from '../lib/content';
+import { Image } from 'astro:assets';
+import { formatPeriods } from '../lib/content';
+import { formatDate } from '../lib/dates';
+import { educationDetails } from '../lib/education';
 import { isCurrentPosition } from '../lib/experience';
+import { siteSettings } from '../lib/site-settings';
+import { publicLocation } from '../lib/public-profile';
+import { assertSupportedPhoto } from '../lib/image-privacy';
 import type { ImageMetadata } from 'astro';
-import { formatCaseDate } from '../lib/case-dates';
 
 type Props = {
   entry: CollectionEntry<'experience' | 'education' | 'credentials' | 'expertise' | 'projects' | 'interests' | 'callouts'>;
@@ -14,6 +19,7 @@ type Props = {
 const { entry, expanded = false, grouped = false } = Astro.props;
 const { Content } = await render(entry);
 const data = entry.data;
+const location = entry.collection === 'experience' ? publicLocation(entry.data) : undefined;
 const title = 'role' in data ? data.role : 'title' in data ? data.title : 'name' in data ? data.name : data.program;
 const Heading = grouped ? 'h4' : 'h3';
 const badge = entry.collection === 'credentials' ? entry.data.badge : undefined;
@@ -21,6 +27,13 @@ const badgeFiles = import.meta.glob<{ default: ImageMetadata }>('@site-assets/cr
 const badgeLoader = badge ? Object.entries(badgeFiles).find(([file]) => file.endsWith(`/${badge.image}`))?.[1] : undefined;
 if (badge && !badgeLoader) throw new Error(`Missing credential badge: assets/credentials/${badge.image}`);
 const badgeImage = badgeLoader ? (await badgeLoader()).default : undefined;
+if (badgeImage) await assertSupportedPhoto(badgeImage);
+const logo = entry.collection === 'experience' || entry.collection === 'education' ? entry.data.logo : undefined;
+const logoFiles = import.meta.glob<{ default: ImageMetadata }>('@site-assets/organizations/*.{png,jpg,jpeg,webp}');
+const logoLoader = logo ? Object.entries(logoFiles).find(([file]) => file.endsWith(`/${logo.image}`))?.[1] : undefined;
+if (logo && !logoLoader) throw new Error(`Missing organization logo: assets/organizations/${logo.image}`);
+const logoImage = logoLoader ? (await logoLoader()).default : undefined;
+if (logoImage) await assertSupportedPhoto(logoImage);
 const credentialLinks = entry.collection === 'credentials' ? [
   ...(entry.data.course_url ? [{ label: 'Training program', url: entry.data.course_url }] : []),
   ...(entry.data.verification_url ? [{ label: 'Verify credential', url: entry.data.verification_url }] : []),
@@ -28,20 +41,28 @@ const credentialLinks = entry.collection === 'credentials' ? [
 const links = [...credentialLinks, ...data.links].filter((link, index, items) => items.findIndex((item) => item.url === link.url) === index);
 ---
 <article class="content-entry" id={entry.id} tabindex="-1">
-  <header>
+  <header class:list={{ 'employment-logo-header': Boolean(logoImage) }}>
+    {logo && logoImage && <span class="employment-logo"><Image src={logoImage} alt={logo.alt} loading="lazy" decoding="async" /></span>}
     {entry.collection === 'interests' && <Icon class="about-card-icon" name={`lucide:${entry.data.icon}`} aria-hidden="true" />}
-    {badge && badgeImage && <img class="credential-badge" src={badgeImage.src} width={badgeImage.width} height={badgeImage.height} alt={badge.alt} loading="lazy" decoding="async" />}
-    {entry.collection === 'experience' && <p class="meta">{formatPeriods(entry.data.periods)}{isCurrentPosition(entry) ? `${entry.data.periods.length ? ' · ' : ''}Current role` : ''}</p>}
+    {badge && badgeImage && <Image class="credential-badge" src={badgeImage} alt={badge.alt} loading="lazy" decoding="async" />}
+    {entry.collection === 'experience' && <p class="meta">{formatPeriods(entry.data.periods, undefined, siteSettings.locale)}{isCurrentPosition(entry) ? `${entry.data.periods.length ? ' · ' : ''}Current role` : ''}</p>}
     <Heading>{title}</Heading>
     {entry.collection === 'experience' && <p class="entry-organization">{entry.data.organization}</p>}
-    {entry.collection === 'credentials' && <p class="meta">{!grouped && `${entry.data.issuer} · `}{entry.data.issued_year} · {entry.data.credential_type}</p>}
-    {entry.collection === 'credentials' && entry.data.expires_on && <p class="meta">{entry.data.expires_on < new Date().toISOString().slice(0, 10) ? 'Expired' : 'Expires'} <time datetime={entry.data.expires_on}>{formatCaseDate(entry.data.expires_on)}</time></p>}
-    {entry.collection === 'education' && <p class="meta">{entry.data.institution} · {formatMonth(entry.data.start)} to {entry.data.end ? formatMonth(entry.data.end) : 'Present'}{entry.data.credential_type === 'attendance' ? ' · Attendance' : entry.data.completion_status === 'completed' ? '' : ' · Studies'}</p>}
+    {location && <p class="meta">{location}</p>}
+    {entry.collection === 'credentials' && <p class="meta">{!grouped && `${entry.data.issuer} · `}{entry.data.issued_year}</p>}
+    {entry.collection === 'credentials' && entry.data.expires_on && <p class="meta">Expires {formatDate(entry.data.expires_on, siteSettings.locale)}</p>}
+    {entry.collection === 'education' && <p class="meta">{entry.data.institution} · {educationDetails(entry.data, siteSettings.locale)}</p>}
     {entry.collection === 'projects' && <p class="meta">{entry.data.contribution}</p>}
   </header>
   <p>{data.description_short}</p>
   {entry.collection === 'experience' && entry.data.highlights.length > 0 && <ul>{entry.data.highlights.map((highlight) => <li id={`${entry.id}-${highlight.id}`}>{highlight.text}</li>)}</ul>}
   {data.blocks.litigation_relevance && <p class="callout">{data.blocks.litigation_relevance}</p>}
-  {expanded ? <div class="prose"><Content /></div> : <details><summary>Read more</summary><div class="prose"><Content /></div></details>}
-  {links.length > 0 && <ul class="links">{links.map((link) => <li><a href={link.url}>{link.label}</a></li>)}</ul>}
+  {expanded ? <div class="prose"><Content /></div> : <details>
+    <summary>Read more</summary>
+    <div class="prose">
+      <Content />
+      {entry.collection === 'credentials' && links.length > 0 && <ul class="links">{links.map((link) => <li><a href={link.url}>{link.label}</a></li>)}</ul>}
+    </div>
+  </details>}
+  {(expanded || entry.collection !== 'credentials') && links.length > 0 && <ul class="links">{links.map((link) => <li><a href={link.url}>{link.label}</a></li>)}</ul>}
 </article>

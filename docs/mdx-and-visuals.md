@@ -19,7 +19,7 @@ References: [Astro MDX](https://docs.astro.build/en/guides/integrations-guide/md
 [MDX syntax troubleshooting](https://mdxjs.com/docs/troubleshooting-mdx/#problems-writing-mdx).
 
 The unused `templates/investigation-notes.mdx` example demonstrates two components.
-It is outside the content collections and does not appear as Reymundo's writing:
+It is outside the content collections and does not appear as the investigator's writing:
 
 ```mdx
 import Callout from '@components/Callout.astro';
@@ -83,7 +83,7 @@ Production cards obey the same draft filtering as pages. With the current draft
 content, production contains only a “Site in preparation” homepage and card.
 Draft cards stay in `dist-drafts/`. Metadata uses the selected `site.json` URL;
 social platforms can fetch it once the matching build is publicly hosted. Current
-`noindex` metadata is preserved. An anchor link to a case shares its category
+Published pages allow search-engine indexing; local draft reviews carry `noindex`. An anchor link to a case shares its category
 page's card because URL fragments are not separate pages.
 
 ## tsParticles
@@ -102,10 +102,11 @@ intercept links or text selection. The animation follows light/dark mode, pauses
 when the browser loses focus, and runs at a capped 30 frames per second. Small
 screens use fewer particles.
 
-The Pause animation button stays in the lower-right corner and remembers the
-choice across pages in browser storage. Users with
-reduced motion enabled receive no animation or particle-engine download. The
-engine loads only when animation is enabled.
+The background runs automatically, with no public play or pause control and no
+saved visitor pause preference. Use `appearance.particles` in the investigator's
+`site.json` to enable or disable it. Users with reduced motion enabled receive
+no animation or particle-engine download. The engine loads only when animation
+is enabled.
 
 Adjust the animation in `src/config/particles.json`:
 

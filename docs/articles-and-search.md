@@ -60,28 +60,19 @@ filters clears both and hides the results again. The input and filter tools are
 visible immediately; result counts and records appear only when a nonblank query
 or filter is active. Whitespace-only queries do not expand an unfiltered list.
 Each result represents one case and
-links directly to its permanent `/cases/<slug>/` page. Examples carry an
+links directly to that case's existing category-page anchor. Examples carry an
 explicit `Example:` title and their own dataset filter.
 
-The index, individual case pages, and category routes all derive from the
-visible Casework page's selected charts. Removing a chart from that page, hiding
-the page, or removing its `charts` section removes those cases from all three.
-A production build includes published real cases
+The index derives from the Casework page's selected charts and the same case
+visibility rules as the charts. A production build includes published real cases
 only. Draft previews include examples and drafts. Editorial notes and unused
 named blocks are excluded from search. Search indexes summaries, narrative,
 displayed investigative questions, dates, role, networks, assets, jurisdictions,
 services, and link labels. Numeric metrics remain available in the case details
 and statistics; they are not full-text search fields.
 
-Markdown is parsed with Astro's existing Satteri parser before its prose is
-indexed. HTML comments, script/style/template contents, explicitly hidden HTML,
-link targets, and HTML attributes do not become search text. Code samples remain
-searchable as visible code, even when the sample demonstrates hidden markup.
-
 MDX case bodies contribute literal prose, including text inside components.
 Imports, exports, JavaScript expressions, and component attributes are omitted.
-Explicitly hidden component subtrees are omitted as well. Search does not run
-custom component code or evaluate conditional expressions.
 If a component generates important text from props or code, describe that content
 in the case's summary or body as well so readers can find it through search.
 
@@ -95,13 +86,6 @@ serving an old index. No preliminary static build is required.
 respective output directories. Search runs in the visitor's browser and needs no
 hosted search service, database, GitHub Actions, or server-side search endpoint.
 The ordinary charts and case lists remain usable without JavaScript.
-
-The case slug is the permanent public identity. Keep it unchanged when renaming
-the source file or changing a case's category. Category pages now contain short
-summaries with links to the full case, rather than repeating every narrative.
-Existing category `#case-slug` anchors continue to land on the relevant summary.
-If a case is moved to another category, share its permanent case URL instead of
-the old category anchor.
 
 Implementation: `src/lib/search.ts` selects case fields;
 `scripts/search-index.ts` builds and refreshes indexes;

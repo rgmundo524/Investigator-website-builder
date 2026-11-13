@@ -2,24 +2,20 @@
 import type { CollectionEntry } from 'astro:content';
 import SkillRow from './SkillRow.astro';
 import { selected } from '../lib/content';
-import { orderAboutEntries, skillLevels } from '../lib/about';
 type Props = { page: CollectionEntry<'pages'> };
 const { page } = Astro.props;
-const entries = orderAboutEntries(await selected('skills', page.data.skills));
-const groupOrder = page.data.skill_group_order;
-const groups = [...new Set(entries.map((entry) => entry.data.group))].sort((a, b) => {
-  const ai = groupOrder.indexOf(a), bi = groupOrder.indexOf(b);
-  return (ai < 0 ? Infinity : ai) - (bi < 0 ? Infinity : bi) || a.localeCompare(b);
-});
+const groups = (await Promise.all(page.data.skill_groups.map(async (group) => ({
+  name: group.name, entries: await selected('skills', group.skills),
+})))).filter(({ entries }) => entries.length > 0);
+const entries = groups.flatMap(({ entries }) => entries);
 ---
 {entries.length > 0 && <section class="container content-section" id="section-skills" aria-labelledby="heading-skills">
   <div class="section-heading"><div>
     <h2 id="heading-skills">{page.data.blocks.skills_heading ?? 'Skills'}</h2>
     {page.data.blocks.skills_intro && <p class="reading-copy">{page.data.blocks.skills_intro}</p>}
   </div></div>
-  <p class="skill-scale">Self-assessment scale: {skillLevels.map((label, index) => <span>{index + 1} · {label}</span>)}<span>Unrated skills have no assigned level.</span></p>
   <div class="skill-group-grid">{groups.map((group, index) => <section class="about-card skill-group-card" aria-labelledby={`skill-group-${index}`}>
-    <h3 id={`skill-group-${index}`}>{group}</h3>
-    <ul class="skill-rows">{entries.filter((entry) => entry.data.group === group).map((entry) => <SkillRow entry={entry} symbols={page.data.skill_symbols} />)}</ul>
+    <h3 id={`skill-group-${index}`}>{group.name}</h3>
+    <ul class="skill-rows">{group.entries.map((entry) => <SkillRow entry={entry} symbols={page.data.skill_symbols} />)}</ul>
   </section>)}</div>
 </section>}

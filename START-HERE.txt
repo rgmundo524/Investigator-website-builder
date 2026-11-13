@@ -1,0 +1,31 @@
+INVESTIGATOR WEBSITE BUILDER - WINDOWS
+
+1. Install Node.js 24 for Windows, including npm:
+   https://nodejs.org/en/download/
+
+2. Extract this entire ZIP with File Explorer's Extract All.
+   Open the extracted investigator-website-builder folder.
+
+3. Double-click Start Builder.cmd.
+   The first start downloads the required software. Keep that window open.
+   The builder opens in your browser, normally at http://127.0.0.1:4310/.
+
+4. Create a blank content pack, or open an existing content folder.
+   Keep this content folder outside the builder folder.
+
+5. Under Preview & release, choose Start local preview and open its link.
+   Keep the editor and preview in separate browser tabs while you work.
+   Save, review, and apply changes to see them in the preview.
+
+6. When approved, apply records as published and build a published release.
+   Upload that generated website folder to the SAME Cloudflare project each time.
+
+Press Ctrl+C in the launcher window to stop the builder and its preview.
+No Git, Nix, Linux environment, or PowerShell policy changes are required.
+The first start needs internet access. Later starts reuse the installed files.
+
+Full Windows guide: docs/windows.md
+Project and updates: https://github.com/rgmundo524/Investigator-website-builder
+
+This ZIP is the editing application. It is not your website or your editable
+content. Keep and back up your own content folder when updating the application.

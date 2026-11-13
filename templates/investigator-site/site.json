@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "url": "https://example.com",
+  "language": "en",
+  "locale": "en-US",
+  "appearance": {
+    "defaultTheme": "dark",
+    "particles": true
+  }
+}
+

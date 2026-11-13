@@ -1,5 +1,5 @@
 ---
-import { getCollection, getEntry, render } from 'astro:content';
+import { getCollection, render } from 'astro:content';
 import type { InferGetStaticPropsType } from 'astro';
 import SiteLayout from '../layouts/SiteLayout.astro';
 import ContentEntry from '../components/ContentEntry.astro';
@@ -13,72 +13,70 @@ import GitHubProjects from '../components/GitHubProjects.astro';
 import SkillsSection from '../components/SkillsSection.astro';
 import ActivitySection from '../components/ActivitySection.astro';
 import OrganizationsSection from '../components/OrganizationsSection.astro';
+import PersonalPhotos from '../components/PersonalPhotos.astro';
+import PageContactCta from '../components/PageContactCta.astro';
+import PageHeader from '../components/PageHeader.astro';
 import { isVisible, pageContact, pageProfile, selected } from '../lib/content';
 import { sortExperience } from '../lib/experience';
+import { pageMarkdown } from '../lib/page-markdown';
 
 export async function getStaticPaths() {
   const pages = await getCollection('pages', (entry) => entry.id !== 'home' && isVisible(entry));
-  const routes = pages.map((page) => ({ params: { page: page.id }, props: { page } }));
-  // Preserve the former Expertise URL only when its new destination is visible.
-  const workHistory = pages.find((page) => page.id === 'work-history');
-  if (workHistory) routes.push({ params: { page: 'expertise' }, props: { page: workHistory } });
-  const resources = pages.find((page) => page.id === 'resources');
-  if (resources && !pages.some((page) => page.id === 'articles')) routes.push({ params: { page: 'articles' }, props: { page: resources } });
-  return routes;
+  return pages.map((page) => ({ params: { page: page.id }, props: { page } }));
 }
 type Props = InferGetStaticPropsType<typeof getStaticPaths>;
 const { page }: Props = Astro.props;
-if (Astro.params.page === 'expertise') return Astro.redirect('/work-history/#section-expertise', 301);
-if (Astro.params.page === 'articles' && page.id === 'resources') return Astro.redirect('/resources/', 301);
 const profile = await pageProfile(page);
-const cvAvailable = Boolean(await pageProfile(await getEntry('pages', 'home')));
 const contact = await pageContact(page);
 const { Content: Intro } = await render(contact ?? page);
-const biography = page.data.section_order.includes('biography') && profile ? await render(profile) : undefined;
-const Bio = biography?.Content;
+const biography = page.data.section_order.includes('biography') ? await pageMarkdown(page.data.biography) : '';
+const writtenSections = page.data.section_order.includes('page_sections')
+  ? await Promise.all(page.data.page_sections.map(async (section) => ({ ...section, html: await pageMarkdown(section.body) }))) : [];
 const charts = await selected('charts', page.data.charts);
-const experience = sortExperience(page.data.experience_source === 'all' ? await getCollection('experience', isVisible) : await selected('experience', page.data.experience));
+const experience = page.data.experience_source === 'all' ? sortExperience(await getCollection('experience', isVisible)) : await selected('experience', page.data.experience);
 const credentials = page.data.credentials_source === 'all' ? await getCollection('credentials', isVisible) : await selected('credentials', page.data.credentials);
 const sectionNames = ['experience', 'expertise', 'projects', 'education', 'interests', 'callouts'] as const;
 const sections = await Promise.all(sectionNames.map(async (name) => ({ name, entries: name === 'experience' ? experience : await selected(name, page.data[name]) })));
 const labels = { experience: 'Professional experience', expertise: 'Areas of expertise', projects: 'Selected projects', credentials: 'Certifications & training', education: 'Education', interests: 'Outside work', callouts: 'Approach' };
-const workHistoryLinks = page.id === 'work-history' ? page.data.section_order.flatMap((name) => {
-  if (name === 'biography') return Bio ? [{ href: '#section-biography', label: page.data.blocks.biography_link_label ?? 'Background' }] : [];
-  const section = sections.find((section) => section.name === name);
-  if (!section?.entries.length) return [];
-  return [{ href: `#section-${name}`, label: page.data.blocks[`${name}_link_label`] ?? (name === 'experience' ? 'Timeline and roles' : name === 'expertise' ? 'Expertise' : labels[section.name]) }];
-}) : [];
 ---
 <SiteLayout title={page.data.title} description={page.data.description_short} profile={profile}>
-  <header class="container page-intro">
+  <PageHeader portrait={page.data.portrait} name={profile?.data.name}>
     <p class="eyebrow">{page.data.blocks.eyebrow ?? profile?.data.name ?? page.data.title}</p>
     <h1>{page.data.title}</h1>
     <div class="page-lead"><Intro /></div>
-    {page.id === 'work-history' && profile?.data.blocks.professional_focus && <p class="professional-focus">{profile.data.blocks.professional_focus}</p>}
-    {workHistoryLinks.length > 0 && <nav class="section-jumps" aria-label="On this page">{workHistoryLinks.map(({ href, label }) => <a href={href}>{label}</a>)}</nav>}
-    {cvAvailable && (page.id === 'work-history' || page.id === 'contact') && <p class="meta"><a href="/cv/">View professional CV · print or save as PDF</a></p>}
-  </header>
-  {contact && <ContactCards entry={contact} />}
+  </PageHeader>
+  {contact && <ContactCards entry={contact} profile={profile} />}
   {page.data.section_order.map((name) => {
+    if (name === 'personal_photos') return <PersonalPhotos page={page} />;
+    if (name === 'contact_cta') return <PageContactCta page={page} />;
     if (name === 'github') return <GitHubProjects page={page} />;
     if (name === 'skills') return <SkillsSection page={page} />;
     if (name === 'volunteering') return <ActivitySection page={page} kind={name} />;
     if (name === 'organizations') return <OrganizationsSection page={page} />;
-    if (name === 'biography') return Bio && <section class="container bio-section" id="section-biography" aria-labelledby="heading-biography"><div><p class="eyebrow">{page.data.blocks.bio_eyebrow ?? 'Background'}</p><h2 id="heading-biography">{page.data.blocks.bio_heading ?? 'Biography'}</h2></div><div class="reading-copy"><Bio /></div></section>;
+    if (name === 'biography') return biography && <section class="container bio-section" id="section-biography" aria-labelledby="heading-biography"><div><p class="eyebrow">{page.data.blocks.bio_eyebrow ?? 'Background'}</p><h2 id="heading-biography">{page.data.blocks.bio_heading ?? 'Biography'}</h2></div><div class="reading-copy" set:html={biography} /></section>;
+    if (name === 'page_sections') return writtenSections.map((section) => <section class="container content-section" id={`page-section-${section.id}`} aria-labelledby={`page-heading-${section.id}`}><div class="section-heading"><h2 id={`page-heading-${section.id}`}>{section.title}</h2></div><div class="reading-copy prose" set:html={section.html} /></section>);
     if (name === 'credentials') return credentials.length > 0 && <section class="container content-section" id="section-credentials" aria-labelledby="heading-credentials">
-      <div class="section-heading"><h2 id="heading-credentials">{labels.credentials}</h2></div>
-      <CredentialGroups entries={credentials} issuerOrder={page.data.issuer_order} />
+      <div class="section-heading"><h2 id="heading-credentials">{page.data.blocks.credentials_heading ?? labels.credentials}</h2></div>
+      <CredentialGroups entries={credentials} issuerOrder={page.data.issuer_order} issuerLogos={page.data.issuer_logos} preserveEntryOrder={page.data.credentials_source !== 'all'} />
     </section>;
     if (name === 'articles') return <section class="container content-section" aria-label="Articles"><ArticleList page={page} /></section>;
     if (name === 'resources') return <ResourceList page={page} />;
     if (name === 'charts') return charts.length > 0 && <section class="container content-section" id="section-casework" aria-labelledby="chart-heading">
-      <div class="section-heading"><h2 id="chart-heading">Case experience</h2></div><CaseDashboard charts={charts} />
+      <div class="section-heading"><h2 id="chart-heading">{page.data.blocks.charts_heading ?? 'Case experience'}</h2></div><CaseDashboard charts={charts} introduction={page.data.blocks.casebook_introduction} />
     </section>;
     const section = sections.find((section) => section.name === name)!;
     return section.entries.length > 0 && <section class:list={['container', 'content-section', { 'experience-section': name === 'experience', 'frosted-section': name === 'expertise' || (page.id === 'work-history' && name === 'callouts') }]} id={`section-${name}`} aria-labelledby={`heading-${name}`}>
       <div class="section-heading"><div><h2 id={`heading-${name}`}>{page.data.blocks[`${name}_heading`] ?? labels[name]}</h2>{page.data.blocks[`${name}_intro`] && <p class="reading-copy">{page.data.blocks[`${name}_intro`]}</p>}</div></div>
       {name === 'experience' && <ExperienceTimeline entries={experience} settings={page.data.timeline} />}
-      <div class:list={['entry-list', `collection-${name}`]}>{section.entries.map((entry) => <ContentEntry entry={entry} expanded={name === 'expertise' || name === 'projects'} />)}</div>
+      <div class:list={['entry-list', `collection-${name}`, { 'compact-expertise': name === 'expertise' && page.data.compact_sections.includes(name) }]}>{section.entries.map((entry) => <ContentEntry entry={entry} expanded={(name === 'expertise' || name === 'projects') && !page.data.compact_sections.includes(name)} />)}</div>
     </section>;
   })}
 </SiteLayout>
+
+<style>
+  .entry-list.compact-expertise { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.25rem; }
+  .compact-expertise :global(.content-entry) { display: flex; flex-direction: column; }
+  .compact-expertise :global(.content-entry > details) { margin-top: auto; }
+  @media (max-width: 960px) { .entry-list.compact-expertise { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 640px) { .entry-list.compact-expertise { grid-template-columns: minmax(0, 1fr); } }
+</style>

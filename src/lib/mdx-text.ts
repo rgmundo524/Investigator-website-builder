@@ -10,15 +10,18 @@ function attributeExpression(value: unknown): Expression | undefined {
 
 function hiddenAttribute({ name, value }: { name?: string; value?: unknown }): boolean {
   const expression = attributeExpression(value);
-  // Inspect literal syntax only. Never run an authored JavaScript expression.
+  // Inspect literal syntax only. Never evaluate authored JavaScript.
   if (name === 'hidden') return !(expression?.type === 'Literal' && expression.value === false);
-  if (name === 'aria-hidden') return value === 'true' || (expression?.type === 'Literal' && expression.value === true);
+  if (name === 'aria-hidden') {
+    const literal = expression?.type === 'Literal' ? expression.value : value;
+    return String(literal).trim().toLowerCase() === 'true';
+  }
   if (name !== 'style') return false;
   if (typeof value === 'string') return /(?:^|;)\s*(?:display\s*:\s*none|visibility\s*:\s*(?:hidden|collapse))\s*(?:!important)?\s*(?:;|$)/i.test(value);
   return expression?.type === 'ObjectExpression' && Boolean(expression.properties?.some((property) => {
     if (property.type !== 'Property' || property.computed || property.value?.type !== 'Literal') return false;
     const key = property.key.name ?? property.key.value;
-    const literal = String(property.value.value).toLowerCase();
+    const literal = String(property.value.value).trim().toLowerCase();
     return (key === 'display' && literal === 'none') || (key === 'visibility' && ['hidden', 'collapse'].includes(literal));
   }));
 }
@@ -27,9 +30,8 @@ function hiddenAttribute({ name, value }: { name?: string; value?: unknown }): b
 export function mdxSearchText(body: string): string {
   const tree = createProcessor().parse(body);
   function text(node: Node): string {
-    if (['mdxjsEsm', 'mdxFlowExpression', 'mdxTextExpression'].includes(node.type) || ['script', 'style', 'template', 'head'].includes(node.name ?? '')) return '';
-    const attributes = Array.isArray(node.attributes) ? node.attributes : [];
-    if (attributes.some(hiddenAttribute)) return '';
+    if (['mdxjsEsm', 'mdxFlowExpression', 'mdxTextExpression'].includes(node.type) || ['script', 'style', 'template', 'head', 'title'].includes(node.name ?? '')) return '';
+    if (node.attributes?.some(hiddenAttribute)) return '';
     if (['text', 'code', 'inlineCode'].includes(node.type)) return node.value ?? '';
     if (node.type === 'image') return node.alt ?? '';
     return (node.children ?? []).map(text).filter(Boolean).join(' ');

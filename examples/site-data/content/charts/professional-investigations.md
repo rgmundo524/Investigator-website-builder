@@ -4,12 +4,6 @@ publication_status: draft
 title: Litigation Support Investigations
 description_short: Non-criminal investigations involving civil, commercial, and personal
   matters.
-subcategory_paths:
-  - [divorce, asset-disclosure, self-custody-wallets]
-  - [corporate-civil-lawsuits, payment-dispute, invoice-reconciliation]
-  - [divorce, asset-disclosure, exchange-records]
-  - [bankruptcy]
-  - [other]
 categories:
 - id: divorce
   label: Divorce

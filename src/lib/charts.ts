@@ -14,9 +14,9 @@ export function summarizeCases(categories: CaseCategory[]) {
   return { total, slices, canPlot: total !== null && total > 0 };
 }
 
-export function formatShare(percentage: number | null): string {
+export function formatShare(percentage: number | null, locale = 'en-US'): string {
   if (percentage === null) return 'Pending';
-  return `${new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 }).format(percentage)}%`;
+  return new Intl.NumberFormat(locale, { style: 'percent', maximumFractionDigits: 1 }).format(percentage / 100);
 }
 
 export function categoryUrl(chart: string, category: string): string {

@@ -1,10 +1,10 @@
-import type { CaseSunburstData, CaseTreeData, CaseVisual, CaseVisualState } from '../lib/case-visuals';
+import type { CaseSunburstPayload, CaseTreeData, CaseVisual, CaseVisualState } from '../lib/case-visuals';
 
 export function mountCaseVisuals() {
   const abort = new AbortController();
   const options = { signal: abort.signal };
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
-  const preferenceKey = 'reymundo-case-motion-paused';
+  const preferenceKey = 'personal-site-case-motion-paused';
   let paused = false;
   try { paused = localStorage.getItem(preferenceKey) === 'true'; } catch { /* Storage is optional. */ }
   const enabled = () => !paused && !reduced.matches;
@@ -20,7 +20,7 @@ export function mountCaseVisuals() {
     const status = figure.querySelector<HTMLElement>('[data-visual-status]');
     const json = figure.querySelector('[data-visual-data]')?.textContent;
     if (!host || !panel || !json) continue;
-    const data: CaseSunburstData | CaseTreeData = JSON.parse(json);
+    const data: CaseSunburstPayload | CaseTreeData = JSON.parse(json);
     const isTree = figure.dataset.caseVisual === 'tree';
     const button = figure.querySelector<HTMLButtonElement>('[data-visual-action="motion"]');
     let chart: CaseVisual | undefined;
@@ -56,7 +56,7 @@ export function mountCaseVisuals() {
         // The discriminant selects the matching factory and serialized payload.
         chart = isTree
           ? (factory as typeof import('../lib/case-tree-chart').createCaseTree)(host, figure, data as CaseTreeData, enabled(), inViewport && !document.hidden, saved)
-          : (factory as typeof import('../lib/case-sunburst-chart').createCaseSunburst)(host, figure, data as CaseSunburstData, enabled());
+          : (factory as typeof import('../lib/case-sunburst-chart').createCaseSunburst)(host, figure, data as CaseSunburstPayload, enabled());
         if (status) status.hidden = true;
         motion();
       } catch (error) {

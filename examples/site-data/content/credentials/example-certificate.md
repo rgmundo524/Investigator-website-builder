@@ -4,9 +4,7 @@ slug: example-certificate
 publication_status: draft
 name: Example completion certificate
 issuer: Example Professional Institute
-expires_on: "2027-12-31"
 issued_year: 2026
-credential_type: certificate
 description_short: Fictional credential example. Replace with verified training details.
 course_url: https://example.com/training/example-certificate/
 expertise:

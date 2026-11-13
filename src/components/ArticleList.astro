@@ -4,6 +4,7 @@ import { includeDrafts } from '../lib/content';
 import { articleDate, visibleArticles } from '../lib/articles';
 import { readable } from '../lib/cases';
 import { Icon } from 'astro-icon/components';
+import { siteSettings } from '../lib/site-settings';
 type Props = { page: CollectionEntry<'pages'> };
 const { page } = Astro.props;
 const articles = visibleArticles(await getCollection('articles'), includeDrafts);
@@ -12,7 +13,7 @@ const articles = visibleArticles(await getCollection('articles'), includeDrafts)
   <h2 id="heading-my-writing">{page.data.blocks.writing_heading ?? 'My writing'}</h2>
   <div class="article-list">
   {articles.map(({ id, data }) => <article class="article-preview">
-    <div class="meta">{data.publication_status === 'draft' && <span>Draft · </span>}{data.published_on ? <time datetime={data.published_on}>{articleDate(data.published_on)}</time> : <span>Unpublished</span>}</div>
+    <div class="meta">{data.publication_status === 'draft' && <span>Draft · </span>}{data.published_on ? <time datetime={data.published_on}>{articleDate(data.published_on, siteSettings.locale)}</time> : <span>Unpublished</span>}</div>
     <h3><a href={`/articles/${id}/`}>{data.title}</a></h3>
     <p>{data.description_short}</p>
     {data.tags.length > 0 && <ul class="tag-list" aria-label="Topics">{data.tags.map((tag) => <li>{readable(tag)}</li>)}</ul>}

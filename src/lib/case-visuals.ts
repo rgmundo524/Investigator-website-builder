@@ -1,6 +1,5 @@
 import { categoryUrl, formatShare, summarizeCases } from './charts';
-import { subcategoryPath, caseSubcategories, caseUrl, chartCategories, eligibleCases, readable, statusLabels, subcategoryAnchor, type Chart, type CaseStudy, type CaseKind } from './cases';
-import { formatCaseDate } from './case-dates';
+import { caseTitle, subcategoryPath, caseSubcategories, chartCategories, eligibleCases, readable, subcategoryAnchor, type Chart, type CaseStudy, type CaseKind } from './cases';
 
 const palette = [
   ['#8b3049', '#c94c44'], ['#386b94', '#91c9ee'], ['#30786f', '#8bd7c6'],
@@ -36,9 +35,9 @@ export function caseVisuals(charts: Chart[], studies: CaseStudy[], kind: CaseKin
     });
     const [light, dark] = palette[index % palette.length];
     const cases = records.filter(({ data }) => data.chart === chart.id).map((study) => ({
-      id: study.id, title: study.data.title, description: study.data.description_short,
+      id: study.id, title: caseTitle(study.data), description: study.data.description_short,
       path: [study.data.category, ...subcategoryPath(study)],
-      url: caseUrl(study.id),
+      url: `${categoryUrl(study.data.chart, study.data.category)}#${study.id}`,
     }));
     return { id: chart.id, title: chart.data.title, kind, total: summary.total ?? 0, light, dark, categories, cases };
   });
@@ -50,12 +49,12 @@ export function caseVisuals(charts: Chart[], studies: CaseStudy[], kind: CaseKin
         type: 'category', count: category.count, light: category.light, dark: category.dark,
         url: category.url, tooltip: `${category.label}\n${category.count} cases\nSelect to expand or collapse cases.`,
         children: records.filter(({ data }) => data.chart === group.id && data.category === category.id).map(({ id, data }) => ({
-          id: `case:${id}`, label: data.blocks.chart_label ?? id, title: data.title,
+          id: `case:${id}`, label: data.case_number ?? data.blocks.chart_label ?? id, title: caseTitle(data),
           type: 'case', count: 1, value: 1, light: category.light, dark: category.dark,
-          url: caseUrl(id),
-          tooltip: [data.title, data.description_short, statusLabels[data.case_status],
+          url: `${categoryUrl(data.chart, data.category)}#${id}`,
+          tooltip: [caseTitle(data), data.case_number ? data.title : '', data.description_short,
             `Classification: ${subcategoryPath({ id, data }).map(readable).join(' → ')}`,
-            `Opened: ${formatCaseDate(data.opened_on)}`, data.closed_on ? `Completed: ${formatCaseDate(data.closed_on)}` : '',
+            data.opened_on ? `Engaged: ${data.opened_on}` : '', data.closed_on ? `Report issued: ${data.closed_on}` : '',
             data.networks.length ? `Networks: ${data.networks.map(readable).join(', ')}` : '',
             'Open case details.'].filter(Boolean).join('\n'),
         })),
@@ -70,8 +69,24 @@ export function caseVisuals(charts: Chart[], studies: CaseStudy[], kind: CaseKin
 }
 
 export type CaseSunburstData = ReturnType<typeof caseVisuals>['groups'][number];
+export type CaseVisualDataset = ReturnType<typeof caseVisuals>;
+export type CaseSunburstPayload = Pick<CaseSunburstData, 'id' | 'title' | 'kind' | 'total' | 'light' | 'dark'> & {
+  categories: Pick<CaseSunburstData['categories'][number], 'id' | 'label' | 'light' | 'dark'>[];
+  cases: Pick<CaseSunburstData['cases'][number], 'id' | 'path'>[];
+};
+
+// The interactive sunburst needs classification membership, while the server
+// retains descriptions, links, counts, and shares for the accessible fallback.
+export function sunburstPayload(data: CaseSunburstData): CaseSunburstPayload {
+  const { id, title, kind, total, light, dark } = data;
+  return { id, title, kind, total, light, dark,
+    categories: data.categories.map(({ id, label, light, dark }) => ({ id, label, light, dark })),
+    cases: data.cases.map(({ id, path }) => ({ id, path: [...path] })),
+  };
+}
+
 export type CaseTreeData = Pick<ReturnType<typeof caseVisuals>, 'kind' | 'total' | 'tree'>;
-export type CaseVisualState = { sunburstNode?: string; expanded?: string[]; zoom?: { x: number; y: number; scale: number } };
+export type CaseVisualState = { sunburstNode?: string; expanded?: string[]; treeAutoFit?: boolean; zoom?: { x: number; y: number; scale: number } };
 export type CaseVisual = {
   dispose(): void; state(): CaseVisualState; motion(enabled: boolean): void;
   visible(visible: boolean): void; action?(action: string): void;

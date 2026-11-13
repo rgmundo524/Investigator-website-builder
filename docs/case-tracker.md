@@ -1,148 +1,56 @@
-# Adding and maintaining case records
+# Maintaining the completed-case portfolio
 
-This is a Markdown-backed running record of casework. Editing files updates the
-local development site; the static public site updates when you rebuild and
-upload it. There is no separate database, browser editing form, or scheduled job.
+The casebook presents completed work suitable for a public website. It is not a live investigation tracker. Do not add active or on-hold matters. There is no case-status field.
 
-## Add a case
+Use the [Investigator Website Builder](editor.md) to edit cases, review changes, and preview the website. Markdown files remain the source of truth. Applying a change updates local content; a new release must be built and uploaded to update the public website.
 
-1. Copy `templates/cases.md` to `content/cases/case_001.md` (or another filename).
-2. Set a unique `slug`, such as `case-001`. Keep that identity stable.
-3. Choose an existing chart and one primary category from `content/charts/`.
-   Set `subcategory` to a lowercase hyphenated ID, such as `bridge-exploit`,
-   an ordered list of IDs for deeper levels, or `null`. Each list is a single
-   parent-to-child path. Subcategories are discovered directly from case files.
-4. Enter the facts you have and write the narrative sections. Leave unknown dates
-   and numbers as `null`; an empty list means no details have been entered.
-5. Use `content_kind: case_study` for actual work or `example` for invented data.
-6. Run `npm run check` and view Casework with `npm run dev`.
+## Case identity
 
-No page list or counter needs updating when you add a case. In production, only
-published case records in published charts count. Publishing a record requires
-publishing its referenced chart. A private repository does not make a published
-website private; case Markdown should contain the version you intend the site
-to display. Keep confidential evidence and administrative records separately.
+`case_number` is the reference printed on the report cover. Keep it as a quoted string so prefixes and leading zeroes survive. Do not substitute a victim name or infer a number from a folder name. It is optional when the available report does not establish a number.
 
-## Facts to gather from historical cases
+The number is the visible case heading when supplied. `title` is a brief anonymized description, and `description_short` is the summary. The editor labels them **Public description** and **Summary**. A descriptive heading remains as a fallback until a report number is verified.
+
+`slug` is a separate internal file and link identifier. Keep existing slugs stable. Two distinct matters can share the same report number, so the number is not required to be unique. New records receive a safe file identifier automatically in the editor.
+
+## What the scope describes
+
+`scope_summary` states the commissioned tracing or analysis, the assets or transactions examined, and the period covered. It is a description of the work, not a question. It describes the engagement, rather than all activity by a perpetrator or only the initial stolen balance.
+
+- Criminal investigations: describe the reported event or loss and the funds or question traced.
+- Civil, disclosure and due-diligence investigations: describe the holdings, transactions or dispute under review. Assets need not have been stolen.
+
+`networks` and `assets` are optional context about the investigation, including information established during the work. They are not an inventory of a person's wallets. Do not publish client names, addresses or transaction hashes in case metadata or narratives.
+
+## Case fields
 
 | Field | Meaning |
 | --- | --- |
-| `title`, `description_short` | Public-facing title and short scope summary |
-| `chart`, `category` | One investigation group and one primary classification |
-| `subcategory` | A classification ID or ordered list from broad to specific; null/omitted becomes Unspecified |
-| `case_status` | `active`, `completed`, `on_hold`, or `unspecified` |
-| `opened_on`, `closed_on` | Quoted `YYYY`, `YYYY-MM`, or `YYYY-MM-DD`, or null; closing is for completed cases |
-| `role` | Your actual contribution or position in the engagement |
-| `experience` | Optional slug of the related employment record in `content/experience/` |
-| `networks` | Unique lowercase IDs such as `bitcoin`, `ethereum`, `tron`, `arbitrum` |
-| `assets` | Asset symbols or names such as BTC, ETH, USDT |
-| `jurisdictions` | Jurisdictions relevant to the matter, when appropriate to include |
-| `services` | `tracing`, `osint`, `forensic-report`, `expert-report`, `deposition`, `testimony` |
-| `metrics.addresses_reviewed` | Count of distinct on-chain addresses reviewed; identify addresses by network |
-| `metrics.wallets_reviewed` | Count of distinct wallets identified and reviewed; do not treat each address as a wallet |
-| `metrics.transactions_reviewed` | Distinct transactions reviewed within the recorded scope; identify transactions by network and transaction ID |
-| `metrics.reported_loss_usd` | Reported loss for this matter in USD; not an independently proved loss or a recovery |
-| `metrics.assets_reviewed_usd` | USD asset value within the review scope, excluding repeated transfer turnover |
-| `metrics.reported_loss_valuation_date`, `metrics.reported_loss_note` | Exact valuation date and source/basis for the reported loss |
-| `metrics.assets_reviewed_valuation_date`, `metrics.assets_reviewed_note` | Exact valuation date and source/basis for assets reviewed |
-| `metrics.valuation_date`, `metrics.amount_note` | Optional shared fallback for both figures; existing files continue to work |
-| `links` | Appropriate public supporting sources, each with a label and URL |
-| `blocks.investigative_question` | Optional short question reused as a callout |
-| Markdown body | Evidence, approach, findings, deliverables, limitations, and follow-up |
+| `case_number` | Verified report-cover reference, quoted as text |
+| `title`, `description_short` | Anonymized description and summary |
+| `scope_summary` | Optional commissioned work, assets or transactions and period in scope; omit when undocumented |
+| `chart`, `category` | Investigation group and primary classification |
+| `subcategory` | Ordered classification path from broad to specific, or `[]` |
+| `opened_on` | Engagement date from the report introduction, quoted YYYY-MM-DD or null |
+| `closed_on` | Report issue date from the cover, quoted YYYY-MM-DD or null |
+| `role` | Investigator's actual contribution or role |
+| `networks`, `assets` | Optional network IDs and asset symbols relevant to the work |
+| `off_chain_leads` | Optional confirmed lead types only: IP/email addresses, phone numbers, social media accounts or URLs; never the actual identifiers |
+| `jurisdictions` | Optional countries or territories relevant to the work; select multiple using the editor's searchable checkboxes |
+| `services` | Existing supported service tags; not a GoCrypto package selection |
+| `metrics.reported_loss_usd` | Optional reported loss for a criminal matter |
+| `metrics.assets_reviewed_usd` | Optional asset value within a civil review's scope |
+| `metrics.amount_note` | Optional source, limitations or different valuation basis/date |
+| Markdown body | Evidence, approach, findings, deliverables and limitations |
 
-Each USD amount requires both a valuation date and an amount note. Use the
-figure-specific fields when reported losses and reviewed assets use different
-dates or sources. Otherwise the shared `valuation_date` and `amount_note` apply
-to both figures. Financial valuation dates still require a full `YYYY-MM-DD` date;
-partial dates apply only to case opening and completion dates. A known zero is
-`0`; an unknown amount is `null`. Do not count the same loss in several records
-or turn repeated movements of the same funds into additional assets reviewed.
-If one engagement has several phases, update its record rather than counting
-those phases as new cases. Files may live in subfolders; discovery is recursive.
+There are no wallet-count or transaction-count fields. Keep identifying evidence in the private case records. A known zero amount is `0`; an unknown amount is `null`. USD amounts use values at the time of the relevant transactions by default and never imply recovery. A separate valuation date is not collected. Explain a different valuation basis, date, source or limitation in the optional amount note; do not substitute the engagement or report date. Omit figures that are unnecessary for the public summary.
 
-### Historical dates without invented precision
+The editor shows loss fields for criminal investigations and asset-review fields for civil investigations. The fixed service checklist is intentionally absent until the GoCrypto marketing material supplies the package names and definitions. Historical service tags are preserved without retroactively claiming a package was purchased.
 
-If only the year is known, use `opened_on: "2021"`. If the month is known, use
-`opened_on: "2021-07"`. Use `"2021-07-14"` only when that date is documented.
-The site displays these as 2021, Jul 2021, and Jul 14, 2021. All three contribute
-to the 2021 opening-year statistics. Leave a wholly unknown date as `null`.
+## Add and review
 
-Validation compares date ranges. A case opened in `"2021-07"` cannot close in
-`"2021-06"`, but a case with only `"2021"` as its opening year may close in
-`"2021-06"` because the exact opening month is unknown. Impossible calendar dates
-such as `"2021-02-29"` are rejected.
+1. Choose **New case**, or copy `templates/cases.md` into the selected pack's `content/cases/` folder.
+2. Supply verified facts and an anonymized narrative. Leave unavailable optional facts blank rather than guessing.
+3. Choose **Save working draft**, then **Review changes**. Resolve validation errors before applying.
+4. Apply as a website draft and preview. Mark reviewed content published when it is ready for the next static release.
 
-### Consistent classification paths
-
-Primary category IDs are defined by the chart. A chart may also define an optional
-`subcategory_paths` vocabulary. Each path includes the primary category followed
-by its increasingly specific subcategories:
-
-```yaml
-subcategory_paths:
-  - [pig-butchering, investment-platform, fake-exchange, withdrawal-fee]
-  - [pig-butchering, investment-platform, fake-exchange, account-freeze]
-  - [hacks, bridge-exploit]
-```
-
-For the first path, a case uses `category: pig-butchering` and
-`subcategory: [investment-platform, fake-exchange, withdrawal-fee]`. A shorter
-prefix such as `[investment-platform]` remains valid when that is all the
-classification supported by the evidence. Omit `subcategory_paths` or leave it
-empty to preserve the original behavior of discovering subcategories from cases.
-
-Use `case_networks` in the selected content directory's `site.json` to optionally
-restrict network IDs. For example, `"case_networks": ["bitcoin", "ethereum", "tron"]`
-rejects misspelled or alternate IDs. Without that setting, existing free-form
-network IDs continue to work. Choose `ethereum` instead of mixing it with `eth`.
-Do not change an existing case slug when correcting its classification.
-
-### A small first batch
-
-Start with five varied cases before importing the full history: an active matter,
-a completed matter, a multi-network trace, a report or testimony engagement, and
-a historical matter with incomplete dates or no publishable financial amount.
-Check that each is counted once, uses the intended categories, and distinguishes
-addresses, wallets, reported losses, and reviewed assets. Keep each record in
-draft until its public wording and supporting links have been reviewed.
-
-## Derived statistics
-
-- Total records, active cases, completed cases, and distinct networks.
-- Separate criminal/litigation-support chart totals, with category and subcategory counts.
-- Case counts by opening year, including an Undated bucket, and by status.
-- Counts by network and service. A case can appear in several of these groups,
-  so these counts are not parts of one exclusive total.
-- Reported losses and assets reviewed, kept as separate USD totals. Each shows
-  coverage, such as 4 of 10 cases with an amount recorded. These use historical
-  valuations, are not current market values, and do not imply a recovery rate.
-
-Actual and illustrative records never contribute to the same statistics.
-Statistics describe the records entered so far, not an inferred lifetime total.
-
-## Examples
-
-The ten original illustrative records now include structured facts. Three new
-copyable examples give unequal chart proportions and demonstrate missing data:
-
-- `content/cases/case_011.md`: active cross-network scam review.
-- `content/cases/case_012.md`: completed bridge exploit analysis.
-- `content/cases/case_013.md`: historical holdings review with unknown dates and
-  financial values.
-
-All 13 examples remain drafts. Their dates, values, and engagement details are
-fictional and can be replaced or removed as real records are entered. To reuse
-an example for an actual case, replace its claims and metadata, change its slug,
-and set `content_kind: case_study`.
-
-The examples include `hacks → bridge-exploit / protocol-exploit` and
-`divorce → asset-disclosure / historical-holdings`. Some subcategories remain
-null to demonstrate how unclassified records stay in the totals. Primary
-categories remain centrally defined; adding a subcategory needs only the case file.
-
-Both sunbursts filter one shared Pagefind result list at every level. See the
-[chart guide](case-charts.md#markdown-classification-paths) for a copyable nested
-path. `case_011.md` and `example-investment-scam-tracing.md` share Investment
-Platform → Fake Exchange, then split into Withdrawal Fee and Account Freeze.
-`case_013.md` shows Historical Holdings → Wallet Ownership → Self Custody under
-Divorce. These classifications are illustrative, like the rest of the examples.
+Only published actual case records in published charts contribute to production statistics. Draft publication status is a review decision, not an investigation status. Example content is isolated to the example pack and never contributes to the real portfolio.

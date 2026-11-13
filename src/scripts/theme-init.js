@@ -1,7 +1,7 @@
 // Inlined in <head> so navigation restores the theme before the first paint.
 // sessionStorage follows this tab's page session rather than a lasting preference.
 (() => {
-  const key = 'rg-theme';
+  const key = 'personal-site-theme';
   const readTheme = (fallback) => {
     try {
       const saved = window.sessionStorage.getItem(key);

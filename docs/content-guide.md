@@ -1,7 +1,7 @@
 # Writing and reusing content
 
 Paths under `content/` and `assets/` refer to the selected `SITE_DATA_DIR`,
-or to this repository when unset. See [external content](external-content.md).
+or to the blank investigator pack when unset. See [external content](external-content.md).
 
 ## One file per subject
 
@@ -19,15 +19,15 @@ references. Renaming a file without changing its slug preserves those references
 | --- | --- |
 | `slug` | Unique within its collection; lowercase words separated by hyphens |
 | `publication_status` | `draft` or `published`; omitted values default to draft |
-| `description_short` | Required compact description, written once |
-| `blocks` | Optional named plain-text passages, such as `directory_bio` |
+| `description_short` | Compact public description; optional and source-only for the profile record |
+| `blocks` | Named plain-text passages; only keys supported by a renderer appear on the website |
 | `links` | Optional list of `label` and HTTP(S) `url` pairs |
 | `editorial_note` | Optional source/review note; current components never render it |
 | Markdown body | Required full narrative, with Markdown formatting |
 
 The body serves as the long description. Do not copy it into another
-`description_long` field. Additional separately reusable text goes under `blocks`.
-Frontmatter descriptions, blocks, and highlight text are rendered as plain text;
+`description_long` field. Additional separately reusable text can go under `blocks`,
+but arbitrary block keys do not create website sections. Supported frontmatter descriptions, blocks, and highlight text are rendered as plain text;
 Markdown formatting belongs in the body or in a standalone callout entry.
 
 Example:
@@ -36,8 +36,6 @@ Example:
 description_short: >-
   A brief description for cards and lists.
 blocks:
-  directory_bio: >-
-    A version tailored to an expert directory.
   litigation_relevance: >-
     A passage that explains this role's relevance to litigation work.
 ```
@@ -54,9 +52,13 @@ period can be open. For now, two periods within one entry may not share a month,
 because month-only data cannot distinguish their exact transition dates.
 
 `activePosition()` computes whether a known period includes the current month.
-Use `active_position` only with `periods: []` when dates are unknown, as in the
-ADC LTD NM entry. Explicit date ranges remain the canonical data when available.
+Use `active_position` only with `periods: []` when dates are unknown, when only the current status is known. Explicit date ranges remain the canonical data when available.
 “Present” is derived from an open end date; rebuild when you update employment.
+
+The editor provides **Employment dates** controls for these periods, including
+separate stints at one organization and an explicit **Dates are not documented**
+option. Profile and employment locations stay hidden unless `show_location: true`
+is deliberately selected. See [profile and page field use](profile-pages-audit.md).
 
 `highlights` is a list of `{ id, text }` items. Stable IDs let future CV and
 directory exports select individual achievements without duplicating their text.
@@ -94,17 +96,20 @@ See [the page structure guide](page-structure.md).
 `content/pages/work-history.md` selects the professional sections and their order,
 including expertise at the end. `content/pages/about.md` owns the personal
 introduction and ordered hobby selection from `content/interests/`. Each hobby's
-short description and longer body remain in its own reusable file. Add `biography`
-to a page's `section_order` only when you want to render the professional profile
-body there.
+short description and longer body remain in its own reusable file. Pages choose which
+records appear and their order; the same library record can be selected on multiple
+pages. A page's optional `biography` field stores its own Markdown, shown by the
+`biography` section. The profile body is saved source text, not public biography.
+Use `page_sections: [{ id, title, body }]` for additional page-owned writing and
+include `page_sections` in `section_order` where those passages should appear.
 
 About also selects individual skill, activity, and repository records. See
 [About authoring](about-content.md) for the 1–5 self-assessment scale, volunteer
 work, memberships, DAO participation, icons, and card ordering. See
 [GitHub projects](github-projects.md) for the repository-file workflow.
 
-The Contact page selects one contact directory using `contact: reymundo`.
-`content/contacts/reymundo.md` holds organization cards, personal details, social
+The Contact page selects one contact directory using `contact: investigator`.
+`content/contacts/investigator.md` holds organization cards, personal details, social
 links, and the displayed introduction. See [contact authoring](contacts.md).
 
 Resources automatically discovers `content/resources/` files and groups them using
@@ -144,8 +149,10 @@ Use `course_url` for program information and `verification_url` for an individua
 award record. Optional `badge` fields reference a local seal image and its source.
 See [credential authoring](credentials.md) for fields, grouping, links, and images.
 
-Education distinguishes `degree` from `attendance` and records a completion
-status. Attending an institution must not implicitly display as earning a degree.
+Education entries display the institution, program, recorded study dates, and
+description without a completion-status label. Use the program and description
+to describe the study. The type of study and any existing completion metadata
+remain in the local record; neither adds a public status label.
 
 ## Case charts
 

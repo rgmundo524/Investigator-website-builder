@@ -1,38 +1,18 @@
----
-import { Icon } from 'astro-icon/components';
----
 <canvas id="site-particles" class="site-particles" aria-hidden="true" hidden></canvas>
-<button class="particle-toggle" type="button" aria-pressed="false" hidden>
-  <Icon name="lucide:pause" class="particle-pause" aria-hidden="true" />
-  <Icon name="lucide:play" class="particle-play" aria-hidden="true" />
-  <span>Pause animation</span>
-</button>
 <script>
   import type { Container } from '@tsparticles/engine';
   import { particleOptions } from '../lib/particles';
 
   const canvas = document.querySelector<HTMLCanvasElement>('#site-particles');
-  const button = document.querySelector<HTMLButtonElement>('.particle-toggle');
-  if (canvas && button) {
+  if (canvas) {
     const reduced = matchMedia('(prefers-reduced-motion: reduce)');
     const compact = matchMedia('(max-width: 760px)');
     const hover = matchMedia('(hover: hover)');
     let container: Container | undefined;
     let generation = 0;
     let disposed = false;
-    let paused = false;
     let queued = Promise.resolve();
     let engine: Promise<typeof import('@tsparticles/engine')['tsParticles']> | undefined;
-    function readPausePreference() {
-      try { paused = localStorage.getItem('reymundo-particles-paused') === 'true'; } catch {}
-    }
-    readPausePreference();
-
-    function updateButton() {
-      button!.setAttribute('aria-pressed', String(paused));
-      button!.querySelector('span')!.textContent = paused ? 'Resume animation' : 'Pause animation';
-    }
-
     function loadEngine() {
       return engine ??= Promise.all([import('@tsparticles/engine'), import('@tsparticles/slim')])
         .then(async ([{ tsParticles }, { loadSlim }]) => { await loadSlim(tsParticles); return tsParticles; })
@@ -44,30 +24,21 @@ import { Icon } from 'astro-icon/components';
       container?.destroy();
       container = undefined;
       canvas!.hidden = true;
-      button!.hidden = reduced.matches;
-      updateButton();
       queued = queued.then(async () => {
-        if (disposed || request !== generation || reduced.matches || paused) return;
+        if (disposed || request !== generation || reduced.matches) return;
         const tsParticles = await loadEngine();
-        if (disposed || request !== generation || reduced.matches || paused) return;
+        if (disposed || request !== generation || reduced.matches) return;
         canvas!.hidden = false;
         const next = await tsParticles.load({ element: canvas!, options: particleOptions(document.documentElement.dataset.theme === 'dark', compact.matches, hover.matches) });
-        if (disposed || request !== generation || reduced.matches || paused) { next?.destroy(); return; }
+        if (disposed || request !== generation || reduced.matches) { next?.destroy(); return; }
         container = next;
-        button!.hidden = !next;
       }).catch((error) => {
         if (request !== generation || disposed) return;
         canvas!.hidden = true;
-        button!.hidden = true;
         console.warn('The decorative background could not be loaded.', error);
       });
     }
 
-    function toggleAnimation() {
-      paused = !paused;
-      try { localStorage.setItem('reymundo-particles-paused', String(paused)); } catch {}
-      refresh();
-    }
     function clearHoverOnScroll() {
       // tsParticles updates canvas-relative hover coordinates on pointer movement.
       // Hide the old connection while scrolling until its next pointer update.
@@ -77,7 +48,6 @@ import { Icon } from 'astro-icon/components';
       const plugin = container?.plugins.find((entry): entry is HoverPlugin => 'interactionManager' in entry);
       if (plugin) delete plugin.interactionManager.interactivityData.mouse.position;
     }
-    button.addEventListener('click', toggleAnimation);
     const theme = new MutationObserver(refresh);
     theme.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
     reduced.addEventListener('change', refresh);
@@ -90,16 +60,10 @@ import { Icon } from 'astro-icon/components';
       container = undefined;
     }
     function onPageShow(event: PageTransitionEvent) {
-      if (event.persisted) { disposed = false; readPausePreference(); refresh(); }
-    }
-    function onStorage(event: StorageEvent) {
-      if (event.key !== 'reymundo-particles-paused' && event.key !== null) return;
-      readPausePreference();
-      refresh();
+      if (event.persisted) { disposed = false; refresh(); }
     }
     window.addEventListener('pagehide', onPageHide);
     window.addEventListener('pageshow', onPageShow);
-    window.addEventListener('storage', onStorage);
     window.addEventListener('scroll', clearHoverOnScroll, { passive: true });
     import.meta.hot?.dispose(() => {
       disposed = true;
@@ -109,10 +73,8 @@ import { Icon } from 'astro-icon/components';
       reduced.removeEventListener('change', refresh);
       compact.removeEventListener('change', refresh);
       hover.removeEventListener('change', refresh);
-      button.removeEventListener('click', toggleAnimation);
       window.removeEventListener('pagehide', onPageHide);
       window.removeEventListener('pageshow', onPageShow);
-      window.removeEventListener('storage', onStorage);
       window.removeEventListener('scroll', clearHoverOnScroll);
     });
     refresh();

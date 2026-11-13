@@ -6,20 +6,21 @@ import CaseExplorer from './CaseExplorer.astro';
 import { caseVisuals } from '../lib/case-visuals';
 import { eligibleCases } from '../lib/cases';
 import { includeDrafts } from '../lib/content';
-type Props = { charts: CollectionEntry<'charts'>[] };
-const { charts } = Astro.props;
+type Props = { charts: CollectionEntry<'charts'>[]; introduction?: string };
+const { charts, introduction } = Astro.props;
 const studies = eligibleCases(charts, await getCollection('cases'), includeDrafts);
 const actual = studies.filter(({ data }) => data.content_kind === 'case_study');
 const examples = studies.filter(({ data }) => data.content_kind === 'example');
 const primaryKind = actual.length > 0 || !includeDrafts || !examples.length ? 'case_study' : 'example';
-const primary = caseVisuals(charts, studies, primaryKind, includeDrafts);
+const primaryStudies = primaryKind === 'case_study' ? actual : examples;
+const primary = caseVisuals(charts, primaryStudies, primaryKind, includeDrafts);
 const exampleVisuals = actual.length && examples.length ? caseVisuals(charts, examples, 'example', includeDrafts) : undefined;
 ---
-{actual.length > 0 || !includeDrafts || !examples.length ? <CaseDataset charts={charts} studies={actual} kind="case_study" /> : <CaseDataset charts={charts} studies={examples} kind="example" />}
-{actual.length > 0 && examples.length > 0 && <details class="example-dataset"><summary>Explore the example dataset ({examples.length} records)</summary><CaseDataset charts={charts} studies={examples} kind="example" /></details>}
+<CaseDataset charts={charts} studies={primaryStudies} visuals={primary} introduction={primaryKind === 'case_study' ? introduction : undefined} />
+{exampleVisuals && <details class="example-dataset"><summary>Explore the example dataset ({examples.length} records)</summary><CaseDataset charts={charts} studies={examples} visuals={exampleVisuals} /></details>}
 
 <CaseSearch charts={charts} />
-<details class="case-map-disclosure"><summary>Explore the case relationship map</summary><CaseExplorer data={{ kind: primaryKind, total: primary.total, tree: primary.tree }} /></details>
+<CaseExplorer data={{ kind: primaryKind, total: primary.total, tree: primary.tree }} />
 {exampleVisuals && <details class="example-dataset"><summary>Explore the example case map</summary><CaseExplorer data={{ kind: 'example', total: exampleVisuals.total, tree: exampleVisuals.tree }} /></details>}
 <script>
   import { mountCaseVisuals } from '../scripts/case-visuals';
