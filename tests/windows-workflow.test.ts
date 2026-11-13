@@ -214,7 +214,7 @@ test('the real local launcher edits, previews, checks and packages a content pac
     if (!release) return false;
     assert.equal(release.status, 'succeeded', release.logs);
     assert.equal(release.exitCode, 0);
-    assert.equal(path.resolve(release.destination), path.resolve(releaseDir));
+    assert.equal(await realpath(release.destination), await realpath(releaseDir));
     return true;
   }, 'the real production package using Node and npm_execpath', 120_000);
   const productionHome = await readFile(path.join(releaseDir, 'index.html'), 'utf8');
