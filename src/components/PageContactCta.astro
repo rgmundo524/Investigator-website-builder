@@ -1,0 +1,21 @@
+---
+import { getEntry, type CollectionEntry } from 'astro:content';
+import { Icon } from 'astro-icon/components';
+import { isVisible } from '../lib/content';
+import { contactCtaDestination } from '../lib/contact-cta';
+
+type Props = { page: CollectionEntry<'pages'> };
+const { page } = Astro.props;
+const reference = page.data.contact_cta;
+const contact = reference ? await getEntry('contacts', reference.contact) : undefined;
+const service = contact && isVisible(contact) ? contact.data.services.find(({ id }) => id === reference?.service) : undefined;
+const destination = service ? contactCtaDestination(service) : undefined;
+---
+{service && destination && <section class="container contact-band" id="section-contact_cta" aria-labelledby="heading-contact_cta">
+  <div>
+    <p class="eyebrow">{service.name}</p>
+    <h2 id="heading-contact_cta">{page.data.blocks.contact_heading ?? `Get in touch with ${service.name}`}</h2>
+    <p>{page.data.blocks.contact_description ?? service.description}</p>
+  </div>
+  <a class="button button-primary" href={destination.url}>{page.data.blocks.contact_button_label ?? destination.label}<Icon name="lucide:arrow-up-right" aria-hidden="true" /></a>
+</section>}

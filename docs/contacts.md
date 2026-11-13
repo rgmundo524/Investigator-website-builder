@@ -1,12 +1,19 @@
 # Contact information and service links
 
-Edit `content/contacts/reymundo.md` to change the contact page introduction,
+Edit `content/contacts/investigator.md` to change the contact page introduction,
 organization cards, personal contact information, and social accounts. No Astro
 or CSS changes are needed to update the displayed information.
 
-`content/pages/contact.md` selects this record with `contact: reymundo` and
+`content/pages/contact.md` selects this record with `contact: investigator` and
 continues to control the page title, metadata, and publication status. The
 selected contact record's Markdown body supplies the visible introduction.
+
+In the builder, open **Pages → Contact → Edit organization cards and enquiries**,
+or open the contact record under **Profile & contact**. **Organization contact
+cards** provides fields for the cards below, including a checkbox to show each
+organization. You can add, remove, and reorder cards without editing JSON.
+Changes belong to the shared contact record and use the usual save-and-review
+workflow. All pages that select that record use the same enabled cards.
 
 ## Organization cards
 
@@ -31,25 +38,24 @@ For example, a phone may use `label: '903-705-5802'` and
 `number: '+19037055802'`. The displayed label can contain spaces and punctuation;
 the dialing number must start with `+` and contain only digits after it.
 
-The current cards link to Go-Crypto's Report Fraud page and CipherBlade's
-Contact page. These are ordinary external links, opening in the same tab. The
+Cards link to the enquiry destinations you enter. These are ordinary external links, opening in the same tab. The
 site does not collect enquiries or automatically redirect someone on page load.
 
 ## Personal and social card
 
 `social` supplies a single combined card:
 
-- `title`, `name`, and `description` control its visible text.
+- `title` and `description` control its visible text. Optional `name` overrides
+  the selected profile’s name; omit it to reuse that name automatically.
 - `email` and `phone` work like organization contact fields. They are currently
-  `null` because no personal email or phone has been selected for this site.
+  `null` in the blank pack until a public email or phone is supplied.
 - `links` is a list of `label` / `url` pairs displayed in the written order.
-  LinkedIn and GitHub are populated; add other accounts to the same list.
+  Add LinkedIn, GitHub, or other professional accounts to that list.
 - Set `enabled: false` or remove `social` to hide the entire card. A card without
   any links, email, or phone is also omitted.
 
 Social URLs and service details are not inferred from platform names, jobs, or
-the profile. The old profile `public_email` field has been replaced by
-`social.email` here. The homepage, header, and footer link to `/contact/` when
+the profile. Set public email explicitly in `social.email`. The homepage, header, and footer link to `/contact/` when
 that page is visible, so visitors can choose a destination.
 
 ## Visibility and validation
@@ -75,16 +81,13 @@ choose **Create → Appointment schedule**, set your availability and call durat
 enable calendar availability checks, and select Google Meet if appropriate. Save
 the schedule and copy its booking-page link.
 
-Each organization can now have a `booking` object with `label`, `url`, and
-`enabled`. The Go-Crypto and CipherBlade schedules supplied by Reymundo are
-configured on their respective cards. Go-Crypto comes first through its existing
-`display_order: 10`. To offer only Go-Crypto bookings, set the CipherBlade card's
-`booking.enabled` to `false`; its ordinary contact information remains visible.
+An organization card can have a `booking` object with `label`, `url`, and
+`enabled`. Omit it if you do not offer appointment scheduling. The blank pack
+has no preconfigured accounts or booking schedules.
 
 Use the full HTTPS `calendar.google.com/calendar/appointments/schedules/...`
 address. Open a `calendar.app.google` short link and copy its final URL, or copy
-the URL from Google's website-embed settings. The supplied short links are kept
-in the non-rendered editorial note for reference. Validation rejects private
+the URL from Google's website-embed settings. Validation rejects private
 calendar-view URLs and unrelated providers in the booking field.
 
 `BookingButton.astro` loads Google's official booking script and stylesheet once
@@ -122,10 +125,3 @@ Checked September 7, 2026:
 The LinkedIn account comes from the supplied resume. GitHub uses the account
 provided for this project. No additional personal accounts or email addresses
 were inferred. Start another directory from `templates/contacts.md` if needed.
-
-## Clarifying the destination
-
-Each service can set an optional `audience` sentence and `primary: true` to
-highlight the preferred route. At most one enabled service can be primary.
-These fields do not change any destination or booking account. When both
-organizations are offered, explain which enquiries each is intended to handle.

@@ -1,6 +1,6 @@
 {
-  "name": "reymundo-gomez-info",
-  "version": "0.1.0",
+  "name": "investigator-website-builder",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -24,11 +24,20 @@
     "test": "node --import tsx --test tests/*.test.ts",
     "precontent:export": "node scripts/ensure-dependencies.mjs",
     "content:export": "node --import tsx scripts/export-content.ts",
-    "precontent:upgrade": "node scripts/ensure-dependencies.mjs",
-    "content:upgrade": "node --import tsx scripts/upgrade-content.ts"
+    "presite:init": "node scripts/ensure-dependencies.mjs",
+    "site:init": "node --import tsx scripts/init-site.ts",
+    "presite:package": "node scripts/ensure-dependencies.mjs",
+    "site:package": "node --import tsx scripts/package-site.ts",
+    "presite:template": "node scripts/ensure-dependencies.mjs",
+    "site:template": "node --import tsx scripts/template-site.ts",
+    "preeditor": "node scripts/ensure-dependencies.mjs",
+    "editor": "node --import tsx scripts/editor-server.ts",
+    "start": "node scripts/start-builder.mjs",
+    "builder:package": "node scripts/package-builder.mjs"
   },
   "dependencies": {
     "@amcharts/amcharts5": "5.20.5",
+    "@astrojs/markdown-satteri": "0.4.0",
     "@astrojs/mdx": "8.0.0",
     "@astrojs/sitemap": "3.7.4",
     "@fontsource/inter": "5.3.0",
@@ -47,8 +56,13 @@
   "devDependencies": {
     "@astrojs/check": "0.9.10",
     "@types/node": "24.13.3",
+    "esbuild": "0.28.2",
     "tsx": "4.23.13",
     "typescript": "6.0.3",
     "yaml": "2.9.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rgmundo524/Investigator-website-builder.git"
   }
 }

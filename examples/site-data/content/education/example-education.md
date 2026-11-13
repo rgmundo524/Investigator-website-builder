@@ -7,7 +7,6 @@ program: Example course of study
 credential_type: attendance
 start: 2016-09
 end: 2019-05
-completion_status: unspecified
 description_short: Replace this example with your institution, program, dates, and completion status.
 ---
 

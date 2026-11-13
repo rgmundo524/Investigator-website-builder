@@ -1,15 +1,10 @@
 # Resources
 
-Resources replaces Articles in navigation at `/resources/`. It is a directory of
-guidance and links for people affected by cryptocurrency scams and online fraud.
-The current groups are First steps, Reporting and support, Avoid follow-up scams,
-and Reports and reference. The BDO publication remains in Selected Work.
-
-The initial seven resource cards point to official FBI, FTC, and Office for
-Victims of Crime pages. They include guidance for organizing transaction details,
-IC3 reporting, preserving evidence, finding support, recognizing recovery scams,
-and reading the IC3 annual report. Descriptions identify the provider, and the
-page explains that the initial sources are U.S. agencies.
+The Resources page at `/resources/` is a directory of guidance and links for
+people affected by cryptocurrency scams and online fraud. Its standard groups
+are First steps, Reporting and support, Avoid follow-up scams, and Reports and
+reference. The blank investigator pack starts without resource claims: add links
+you have reviewed using the resource record template.
 
 ## Add or update a resource
 
@@ -40,8 +35,7 @@ groups are omitted. Each listed category must be unique. Change page headings in
 
 Review dates are manually maintained, not an automated link check. Check the
 destination and whether its scope has changed before advancing that date. Do not
-use a report year as its publication date. The IC3 report retains an unknown
-publication date separately from its link review date.
+use a report year as its publication date. Keep a source publication date separate from the date you reviewed its link.
 
 Use your own short descriptions and link to the source; do not copy whole guides.
 Be clear about reporting versus investigation, assistance versus reimbursement,
@@ -54,11 +48,9 @@ The directory reuses Astro content collections, Astro Icon, and existing card an
 disclosure styles. It requires no CMS, added package, database, or runtime fetch.
 The source files remain suitable for a future Git-backed editor.
 
-The unused starter article moved to `templates/investigation-notes.mdx`; it is no
-longer active content. The former `/articles/` URL redirects to Resources whenever
-Resources is visible and no real Articles page has been configured. Future
-original writing can use the retained article schema and templates. See
-[future articles and case search](articles-and-search.md) for activation steps.
+Optional original writing can use the article schema and templates. There are no
+redirect aliases; add an article section to a supporting page when you have
+writing to publish. See [articles and case search](articles-and-search.md).
 
 Official sources checked September 8, 2026:
 

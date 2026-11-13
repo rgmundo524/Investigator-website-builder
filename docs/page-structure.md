@@ -1,62 +1,41 @@
 # Page structure and visual design
 
 The site is organized for attorneys, investigators, and other professional
-contacts who need to understand Reymundo's focus and then inspect the relevant
+contacts who need to understand the investigator's focus and then inspect the relevant
 background or work.
 
 | Route | Content selection | Purpose |
 | --- | --- | --- |
 | `/` | `content/pages/home.md` | Portrait, introduction, three expertise highlights, selected work, contact link |
-| `/work-history/` | `content/pages/work-history.md` | Interactive role timeline, employment details, professional biography, then expertise and analytical approach in frosted panels |
+| `/work-history/` | `content/pages/work-history.md` | Interactive role timeline, employment details, selected expertise and page-owned writing |
 | `/about/` | `content/pages/about.md` | Personal introduction, hobbies, and curated public GitHub projects |
-| `/expertise/` | Compatibility redirect | Opens the expertise section at `/work-history/#section-expertise` when Work History is visible |
 | `/casework/` | `content/pages/casework.md` | Interactive charts, selected projects, and investigation experience |
 | `/credentials/` | `content/pages/credentials.md` | Credentials discovered from Markdown, grouped by issuer, followed by education |
-| `/contact/` | `content/pages/contact.md` selects `content/contacts/reymundo.md` | Organization enquiry cards and a combined personal/social card |
+| `/contact/` | `content/pages/contact.md` selects `content/contacts/investigator.md` | Organization enquiry cards and a combined personal/social card |
 | `/resources/` | `content/pages/resources.md` | Victim guidance, reporting and support, scam awareness, and reference reports |
-| `/articles/` | Compatibility redirect | Opens `/resources/` while no Articles page is configured and Resources is visible |
 | `/investigations/<chart>/<category>/` | Matching records in `content/cases/` | Case summaries reached from chart slices or legend links |
-| `/404.html` | `src/pages/404.astro` | Shared site layout with a page-not-found message and a return-home link |
-| `/sitemap-index.xml` | Official `@astrojs/sitemap` integration | Build-generated sitemap index using the selected data directory's `site.json` URL |
 
 The home page intentionally omits the full CV and chart tables. The underlying
 records remain reusable; adding detail to an employment file does not lengthen
 the landing page. The home page uses `description_short` and selected named
 blocks, while supporting pages use fuller content.
 
-## Missing pages and sitemap
-
-Every build includes a top-level `404.html`, which Cloudflare Pages uses for
-unknown URLs. It uses the normal theme, header, footer, and animation, and its
-home link works even when all content is still draft. No extra Markdown file is
-required in an existing external content directory.
-
-The official `@astrojs/sitemap` integration generates `sitemap-index.xml` and
-`sitemap-0.xml` during builds. The shared layout links to the index. The sitemap
-uses the `url` from the selected data directory's `site.json`; it does not require
-a separately hardcoded domain. Error pages, non-page assets, and the old
-Expertise/Articles URLs when they redirect are excluded. If Articles is restored
-as a real page, it is included automatically.
-
-Production sitemaps follow the production routes, so unpublished content is not
-listed. A draft build's sitemap stays in `dist-drafts/` alongside its draft pages.
-Adding a sitemap does not approve content or remove the current `noindex,
-nofollow` metadata. Search indexing remains a separate launch setting.
-
 ## Shared presentation
 
 - `src/layouts/SiteLayout.astro` owns the header, navigation, footer, title, and
   description. All routes use it. The compact navigation header stays at the top
   while scrolling, with a blurred background. Its measured height reserves room
-  for anchor navigation and keyboard focus. At narrow widths, a Menu button
-  expands the navigation; Escape closes it. Without JavaScript the full links
-  remain visible. The expanded header can scroll internally; print uses normal
-  document flow.
+  for anchor navigation and keyboard focus. On narrow screens, a hamburger button
+  opens the existing navigation, Contact button, and theme toggle in one panel.
+  Escape, an outside click, selecting a link, or moving keyboard focus outside
+  closes it. The expanded header can scroll within 85% of the viewport. Desktop
+  navigation keeps its inline layout. Without JavaScript, links remain visible;
+  print uses normal document flow.
 - `src/styles/global.css` contains the shared navy, burgundy, white, typography,
   spacing, and responsive layout rules.
 - `src/pages/index.astro` renders the curated landing page.
 - `src/pages/[page].astro` renders the supporting page selections. A `biography`
-  section uses the full body of the selected profile at its configured position.
+  section renders that page’s own `biography` Markdown at its configured position.
 - `src/components/ContentEntry.astro` presents the detailed content records.
 
 Typography uses locally available serif and system fonts. No hosted font,
@@ -65,47 +44,38 @@ search interface and static search index.
 
 ## Portrait and contact
 
-The profile Markdown has an optional `portrait` object:
+Each page’s Markdown has its own optional `portrait` object. Use the same image-list
+format for one photo or several:
 
 ```yaml
 portrait:
-  image: reymundo-gomez.png
-  alt: Reymundo Gómez wearing a dark blazer and white shirt.
-  source_url: https://cipherblade.com/expert-witness/crypto-experts/
+  enabled: true
+  images:
+    - image: portrait.jpg
+      alt: A professional headshot.
+  autoplay: false
+  interval_ms: 6000
 ```
 
-`image` names a local file in `assets/`. The portrait component checks that
-the file exists and preserves its dimensions. Replace the file to use a newer
-photo, or change the filename and alt text in `content/profile/reymundo.md`.
-
-The initial portrait is the unmodified 294 × 312 PNG linked beside Reymundo's
-biography on the official CipherBlade expert page:
-
-- Source page: https://cipherblade.com/expert-witness/crypto-experts/
-- Original image: https://cipherblade.com/wp-content/uploads/2024/06/Remundo-Website-Portrait-v1.png
-- Local asset: `assets/reymundo-gomez.png`
-
-The source page identifies the subject by name. It carries CipherBlade's
-copyright notice and does not specify a separate image reuse license. No AI
-portrait, alteration, or generated likeness was used. A higher-resolution
-owner-supplied original can replace this asset later.
+Add the image to the selected content folder's `assets/` directory. The filename
+and alt text belong in that page’s file under `content/pages/`. Hide it with
+`enabled: false` or omit it. See
+[photos](portrait-photos.md) for slideshow and personal-photo settings.
 
 Professional contact links on the homepage, header, and footer open `/contact/`.
 Its introduction, organization cards, contact details, and combined social card
-come from `content/contacts/reymundo.md`. Use `services[].display_order` to order
+come from `content/contacts/investigator.md`. Use `services[].display_order` to order
 organizations and `enabled: false` to hide a card. Personal email and phone are
 optional fields under `social`; links appear in their written order. See
 [contact authoring](contacts.md) for fields and examples.
 
 ## Draft behavior
 
-`npm run dev` and the draft build show all seven main pages, the ten category pages,
-and the draft article.
-The former Expertise URL also redirects to the new Work History section in builds
-where Work History is visible. The ordinary production build continues to exclude draft content. Navigation
-links follow visible page records, and home-page links are omitted when their
-destination page is not visible. Category return links lead to Casework when
-available and fall back to the home page otherwise.
+`npm run dev` and draft builds include unfinished records for local review.
+Normal builds include only published records. Navigation follows visible page
+records, and home-page links appear only when their destination page is visible.
+Case category pages link back to the page containing the relevant chart.
+There are no old-route redirects; each prepared page has one URL.
 
 Automatic Work History selection includes only visible jobs; draft jobs are
 omitted from production. Explicit page references still require published
@@ -121,16 +91,22 @@ menu order is Home, Work History, Casework, Credentials, About, Resources.
 Contact is a separate button immediately to the right of the compact theme toggle.
 The `/contact/` page remains available; the button appears only when that page is
 visible in the current build. Work History now lives at `/work-history/`, and
-`/about/` is the personal page. Homepage job and expertise links use the new route.
+`/about/` is the personal page. Homepage job links and its overall expertise-section link point to Work History. Homepage expertise cards select reusable records, which can also appear on other pages.
 
 Supporting pages set `section_order`, a list of collection names such as
 `experience`, `biography`, `charts`, `projects`, `credentials`, `education`, `expertise`,
-`interests`, `github`, `skills`, `volunteering`, `organizations`, `resources`, and `callouts`. Listed sections render only when they have content;
-unlisted sections are omitted. The Astro templates still define each section's
+`interests`, `github`, `skills`, `volunteering`, `organizations`, `resources`, `callouts`, and `page_sections`. Listed sections render only when they have content;
+unlisted sections are omitted. An omitted `section_order` defaults to `[]`, so no record sections are included automatically. Selected sections without content remain absent from the website; the editor shows that empty state. The Astro templates still define each section's
 visual layout and the curated homepage structure.
 
-Work History sets `section_order: [experience, biography, expertise, callouts]`.
-Its `expertise` and `callouts` lists select reusable records in the written order.
+Work History can set `section_order: [experience, expertise, callouts, page_sections]`.
+Its record lists select reusable entries in the written order. Records have no page
+owner; select the same record on multiple pages when useful. Pages → Page sections
+provides controls for section visibility/order, record selections, headings and
+introductions. A selected job list preserves the selected order; automatic job
+lists retain their date/display ordering. Skills use ordered page-owned `skill_groups: [{ name, skills }]` for both group
+order and order within a group. Credentials retain page-selected order within
+issuer groups and their separate issuer ordering.
 The expertise and approach cards and homepage Selected Work banner share a
 translucent tint with a soft Gaussian backdrop blur in both themes. In
 `src/styles/global.css`, `--glass-surface` uses 38% background opacity (62%
@@ -140,7 +116,7 @@ The tint stays translucent even if backdrop blur is unavailable. The timeline
 keeps its transparent background. The sticky header has a separate, stronger
 85% tint so navigation remains legible over scrolling text.
 
-The `biography` section renders the selected profile body; `blocks.bio_heading`
+The `biography` section renders the page’s `biography` Markdown; `blocks.bio_heading`
 and optional `blocks.bio_eyebrow` control its heading. Other record sections can
 use `blocks.<section>_intro`, such as `blocks.expertise_intro`, for an introduction.
 
@@ -152,7 +128,10 @@ copying `templates/interests.md`, assigning a unique slug, and adding that slug
 to the About page's `interests` list. The list also controls display order; remove
 a slug to omit it from the page. Longer stories belong in the hobby file body.
 The existing selections were moved from Work History without inventing additional
-personal history. The professional profile body remains on Work History.
+personal history. Professional biography is page-owned text on About.
+Additional writing uses `page_sections: [{ id, title, body }]`, with unique IDs,
+plain text headings and Markdown bodies. The `page_sections` slot positions these
+ordered passages among the reusable-record sections.
 Skills and volunteering have dedicated sections. Organizations groups Professional
 Organizations and DAOs within a single section. Related skills share one card,
 with three cards per desktop row. See [About authoring](about-content.md) for skill
@@ -253,8 +232,8 @@ each credential. See [credential authoring](credentials.md).
 
 ## Color mode
 
-Dark mode is the default for a new page session and the fallback without JavaScript.
-The icon-only toggle saves the choice in this tab's `sessionStorage` as `rg-theme`.
+The theme in `site.json` is the default for a new page session and without JavaScript.
+The icon-only toggle saves the choice in this tab's `sessionStorage` as `personal-site-theme`.
 A small head script restores it before the first paint, so page navigation,
 reloads, and browser back/forward history keep the same theme. The accessible
 pressed state and tooltip stay synchronized with it. Persistent `localStorage`
@@ -268,14 +247,6 @@ If storage is blocked, the toggle still works on the current page. The single
 implementation is `src/scripts/theme-init.js`, inlined by the shared layout.
 
 The toggle retains a 44-pixel touch target. It and the Contact button stay together
-on narrow screens, alongside the Menu button. Both color modes use the
+inside the expandable navigation panel on narrow screens. Both color modes use the
 shared CSS variables, including chart surfaces, tables, notices, and keyboard
 focus styles. No external dependency is used for theme state.
-
-## Navigation and case detail updates
-
-At widths up to 1040px, the header uses a Menu disclosure when JavaScript is available.
-Escape closes it and restores focus; without JavaScript all navigation links remain available.
-Work History has jumps to its populated sections. The case relationship map starts collapsed.
-Each case now has a permanent `/cases/{slug}/` URL; category pages provide linked summaries.
-`/cv/` provides a printable view of the same visible professional content.

@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import { schemas, type ContentRecord } from '../src/content/schemas';
 import { loadContent, validateRecords } from '../scripts/content';
 import { categoryUrl, formatShare, summarizeCases } from '../src/lib/charts';
-import { caseRoutes, chartCategories, caseStatistics, eligibleCases } from '../src/lib/cases';
+import { caseRoutes, caseTitle, chartCategories, caseStatistics, eligibleCases } from '../src/lib/cases';
 import { caseVisuals, type CaseNode } from '../src/lib/case-visuals';
 import { caseSunburst, sunburstNodes, sunburstSelection } from '../src/lib/case-sunburst';
 import { classificationKeys, chartSearchSelection, createCaseSearchController, type CaseFilters, type PagefindCaseInstance } from '../src/lib/case-search-filters';
@@ -16,9 +16,10 @@ import { formatPeriods } from '../src/lib/dates';
 import { visibleArticles } from '../src/lib/articles';
 import { groupResources } from '../src/lib/resources';
 import { caseSearchRecords } from '../src/lib/search';
+import { OFF_CHAIN_LEAD_TYPES, offChainLeadLabels } from '../src/lib/off-chain-leads';
 import { createSearchCache } from '../scripts/search-index';
 import { mdxSearchText } from '../src/lib/mdx-text';
-import { mkdtemp, mkdir, readFile, writeFile, copyFile, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, writeFile, copyFile, rm, symlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -27,21 +28,51 @@ import { resolveSiteData, builderRoot } from '../scripts/site-data';
 
 const base = { slug: 'example', description_short: 'A short description.' };
 
-test('profile photos accept the existing portrait or an ordered gallery with valid settings', () => {
-  const profile = { ...base, name: 'Example person', headline: 'An example profile' };
+test('off-chain leads accept unique types and never identifying values', () => {
+  const study = { ...base, title: 'Example case', chart: 'example', category: 'fraud' };
+  assert.deepEqual(schemas.cases.parse(study).off_chain_leads, []);
+  const ids = OFF_CHAIN_LEAD_TYPES.map(({ id }) => id);
+  assert.deepEqual(schemas.cases.parse({ ...study, off_chain_leads: ids }).off_chain_leads, ids);
+  assert.deepEqual(offChainLeadLabels(['ip-addresses', 'urls']), ['IP addresses', 'URLs']);
+  for (const leads of [
+    ['ip-addresses', 'ip-addresses'], ['cipherbait'], ['192.0.2.1'], ['person@example.com'],
+    ['+19035550123'], ['https://example.com/profile'], ['@person'], [{ type: 'email-addresses', value: 'person@example.com' }],
+  ]) assert.equal(schemas.cases.safeParse({ ...study, off_chain_leads: leads }).success, false);
+});
+
+test('case search includes only the selected off-chain lead type labels', async () => {
+  const records = await loadContent(path.resolve('examples/site-data/content'));
+  const study = records.find((record) => record.collection === 'cases')!;
+  assert.equal(study.collection, 'cases');
+  if (study.collection !== 'cases') return;
+  const before = caseSearchRecords(records, true).find(({ url }) => url.endsWith(`#${study.data.slug}`))!.content;
+  study.data.off_chain_leads = ['ip-addresses', 'email-addresses'];
+  const after = caseSearchRecords(records, true).find(({ url }) => url.endsWith(`#${study.data.slug}`))!.content;
+  assert.match(after, /IP addresses\nEmail addresses/);
+  assert.equal(after.replace('IP addresses\nEmail addresses\n', ''), before);
+});
+
+test('each page owns an optional portrait with an ordered image list and slideshow settings', () => {
+  const page = { ...base, title: 'Example page', profile: 'person' };
   const first = { image: 'portrait-main.jpg', alt: 'A professional headshot.' };
   const second = { image: 'portrait-second.webp', alt: 'Speaking at an event.' };
-  assert.deepEqual(schemas.profile.parse({ ...profile, portrait: first }).portrait, first);
-  assert.deepEqual(schemas.profile.parse({ ...profile, portrait: { images: [first, second] } }).portrait,
-    { images: [first, second], autoplay: true, interval_ms: 6000 });
-  assert.ok(schemas.profile.safeParse({ ...profile, portrait: { images: [first], autoplay: false, interval_ms: 2000 } }).success);
+  assert.equal(schemas.pages.parse(page).portrait, undefined);
+  assert.deepEqual(schemas.pages.parse({ ...page, portrait: { images: [first] } }).portrait,
+    { enabled: true, images: [first], autoplay: true, interval_ms: 6000 });
+  assert.deepEqual(schemas.pages.parse({ ...page, portrait: { images: [first, second] } }).portrait,
+    { enabled: true, images: [first, second], autoplay: true, interval_ms: 6000 });
+  assert.ok(schemas.pages.safeParse({ ...page, portrait: { images: [first], autoplay: false, interval_ms: 2000 } }).success);
+  assert.deepEqual(schemas.pages.parse({ ...page, portrait: { enabled: false } }).portrait?.images, []);
+  assert.deepEqual(schemas.pages.parse({ ...page, portrait: { enabled: false, images: [first, second] } }).portrait?.images, [first, second]);
   for (const portrait of [
+    first,
     { images: [] }, { images: [first, first] }, { images: [first], ...first },
     { images: [{ image: '../portrait.jpg', alt: 'Invalid path.' }] },
     { images: [{ image: 'portrait.jpg' }] },
     { images: [first], interval_ms: 1999 }, { images: [first], interval_ms: 60001 },
     { images: [first], autoplay: 'true' },
-  ]) assert.equal(schemas.profile.safeParse({ ...profile, portrait }).success, false);
+    { enabled: 'false', images: [first] },
+  ]) assert.equal(schemas.pages.safeParse({ ...page, portrait }).success, false);
 });
 
 test('the complete starter is self-contained and keeps fictional work out of published results', async () => {
@@ -79,7 +110,7 @@ test('external site directories resolve consistently and invalid configuration n
     assert.equal(a.url, 'https://person-a.example');
     assert.notEqual(a.cacheKey, b.cacheKey);
     assert.equal(resolveSiteData(a.dataDir).cacheKey, a.cacheKey);
-    assert.equal(resolveSiteData('', builderRoot).dataDir, path.join(builderRoot, 'examples/site-data'));
+    assert.equal(resolveSiteData('', builderRoot).dataDir, path.join(builderRoot, 'templates/investigator-site'));
     assert.throws(() => resolveSiteData('missing', root), /SITE_DATA_DIR is not a directory/);
     await rm(path.join(root, 'person-a/content'), { recursive: true });
     assert.throws(() => resolveSiteData('person-a', root), /Missing content directory/);
@@ -121,12 +152,12 @@ test('external source supplies command-line validation and export without modify
 test('theme restores before paint, survives navigation and history, and resets for a new tab session', async () => {
   const source = await readFile('src/scripts/theme-init.js', 'utf8');
   const values = new Map<string, string>();
-  const boot = (storage = values, blocked = false) => {
+  const boot = (storage = values, blocked = false, defaultTheme = 'dark') => {
     const events: Record<string, () => void> = {};
     const attributes: Record<string, string> = {};
     let ready = false;
     const toggle = { hidden: true, setAttribute: (key: string, value: string) => { attributes[key] = value; }, addEventListener: (name: string, action: () => void) => { events[name] = action; } };
-    const root = { dataset: { theme: 'dark' } };
+    const root = { dataset: { theme: defaultTheme } };
     const window = { addEventListener: (name: string, action: () => void) => { events[name] = action; }, get sessionStorage() {
       if (blocked) throw new Error('Storage disabled');
       return { getItem: (key: string) => storage.get(key) ?? null, setItem: (key: string, value: string) => storage.set(key, value) };
@@ -141,7 +172,7 @@ test('theme restores before paint, survives navigation and history, and resets f
   assert.equal(first.toggle.hidden, false);
   first.events.click();
   assert.equal(first.root.dataset.theme, 'light');
-  assert.equal(values.get('rg-theme'), 'light');
+  assert.equal(values.get('personal-site-theme'), 'light');
   const next = boot();
   assert.equal(next.root.dataset.theme, 'light'); // Head script runs before the button exists.
   next.mount();
@@ -152,7 +183,8 @@ test('theme restores before paint, survives navigation and history, and resets f
   assert.equal(first.root.dataset.theme, 'dark');
   assert.equal(first.attributes['aria-pressed'], 'true');
   assert.equal(boot(new Map()).root.dataset.theme, 'dark');
-  assert.equal(boot(new Map([['rg-theme', 'invalid']])).root.dataset.theme, 'dark');
+  assert.equal(boot(new Map(), false, 'light').root.dataset.theme, 'light');
+  assert.equal(boot(new Map([['personal-site-theme', 'invalid']])).root.dataset.theme, 'dark');
   const unavailable = boot(new Map(), true);
   unavailable.mount();
   assert.doesNotThrow(() => unavailable.events.click());
@@ -195,7 +227,7 @@ test('Organizations has one page section with two uniquely ordered subgroup kind
 });
 
 test('About ratings distinguish unknown levels and keep illustrative entries out of publication', () => {
-  const skill = { ...base, title: 'Python', group: 'Programming' };
+  const skill = { ...base, title: 'Python' };
   assert.equal(schemas.skills.parse(skill).proficiency, null);
   for (const value of [1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, null]) assert.equal(schemas.skills.safeParse({ ...skill, proficiency: value }).success, true);
   for (const value of [0, 0.5, 6, 2.25, '3']) assert.equal(schemas.skills.safeParse({ ...skill, proficiency: value }).success, false);
@@ -253,10 +285,11 @@ test('startup installs once, refreshes after a changed lockfile, and propagates 
     await mkdir(path.join(root, 'scripts'));
     await mkdir(path.join(root, 'bin'));
     await copyFile('scripts/ensure-dependencies.mjs', path.join(root, 'scripts/ensure-dependencies.mjs'));
+    await copyFile('scripts/npm-runtime.mjs', path.join(root, 'scripts/npm-runtime.mjs'));
     await writeFile(path.join(root, 'package.json'), JSON.stringify({ dependencies: { example: '1.0.0' } }));
     await writeFile(path.join(root, 'package-lock.json'), 'lock-one');
-    await writeFile(path.join(root, 'bin/npm'), `#!/usr/bin/env node\nconst fs = require('node:fs');\nif (process.argv[2] !== 'ci') process.exit(9);\nif (fs.existsSync('fail-install')) process.exit(7);\nfs.mkdirSync('node_modules', {recursive:true});\nfs.appendFileSync('install-count', '1');\n`, { mode: 0o755 });
-    const run = () => spawnSync(process.execPath, [path.join(root, 'scripts/ensure-dependencies.mjs')], { cwd: root, env: { ...process.env, PATH: `${path.join(root, 'bin')}${path.delimiter}${process.env.PATH}` }, encoding: 'utf8' });
+    await writeFile(path.join(root, 'bin/npm-cli.js'), `#!/usr/bin/env node\nconst fs = require('node:fs');\nif (process.argv[2] !== 'ci' || process.argv[3] !== '--include=dev') process.exit(9);\nif (fs.existsSync('fail-install')) process.exit(7);\nfs.mkdirSync('node_modules', {recursive:true});\nfs.appendFileSync('install-count', '1');\n`, { mode: 0o755 });
+    const run = () => spawnSync(process.execPath, [path.join(root, 'scripts/ensure-dependencies.mjs')], { cwd: root, env: { ...process.env, npm_execpath: path.join(root, 'bin/npm-cli.js'), PATH: `${path.join(root, 'bin')}${path.delimiter}${process.env.PATH}` }, encoding: 'utf8' });
     assert.equal(run().status, 0);
     assert.equal(run().status, 0);
     assert.equal(await readFile(path.join(root, 'install-count'), 'utf8'), '1');
@@ -269,6 +302,35 @@ test('startup installs once, refreshes after a changed lockfile, and propagates 
     await rm(path.join(root, 'fail-install'));
     assert.equal(run().status, 0);
     assert.equal(await readFile(path.join(root, 'install-count'), 'utf8'), '111');
+  } finally { await rm(root, { recursive: true, force: true }); }
+});
+
+test('dependency preparation refuses shared links without running an installer or changing the shared directory', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'site-shared-dependencies-'));
+  try {
+    const checkout = path.join(root, 'checkout');
+    const shared = path.join(root, 'shared');
+    await mkdir(path.join(checkout, 'scripts'), { recursive: true });
+    await mkdir(path.join(checkout, 'bin'));
+    await mkdir(shared);
+    await copyFile('scripts/ensure-dependencies.mjs', path.join(checkout, 'scripts/ensure-dependencies.mjs'));
+    await copyFile('scripts/npm-runtime.mjs', path.join(checkout, 'scripts/npm-runtime.mjs'));
+    await writeFile(path.join(checkout, 'package.json'), '{"dependencies":{}}');
+    await writeFile(path.join(checkout, 'package-lock.json'), '{}');
+    await writeFile(path.join(shared, '.site-dependencies'), 'original marker');
+    await writeFile(path.join(shared, 'keep.txt'), 'original dependency');
+    await symlink(shared, path.join(checkout, 'node_modules'), process.platform === 'win32' ? 'junction' : 'dir');
+    await writeFile(path.join(checkout, 'bin/npm'), '#!/usr/bin/env node\nrequire("node:fs").writeFileSync("installer-called", "yes");\n', { mode: 0o755 });
+    for (const flags of [[], ['--record']]) {
+      const run = spawnSync(process.execPath, [path.join(checkout, 'scripts/ensure-dependencies.mjs'), ...flags], {
+        cwd: checkout, encoding: 'utf8', env: { ...process.env, PATH: `${path.join(checkout, 'bin')}${path.delimiter}${process.env.PATH}` },
+      });
+      assert.notEqual(run.status, 0);
+      assert.match(run.stderr, /Refusing a symlinked node_modules/);
+    }
+    assert.equal(await readFile(path.join(shared, '.site-dependencies'), 'utf8'), 'original marker');
+    assert.equal(await readFile(path.join(shared, 'keep.txt'), 'utf8'), 'original dependency');
+    await assert.rejects(readFile(path.join(checkout, 'installer-called')), { code: 'ENOENT' });
   } finally { await rm(root, { recursive: true, force: true }); }
 });
 
@@ -318,17 +380,17 @@ test('article case references cannot silently break or publish a draft case', ()
 });
 
 test('search respects case visibility, exact anchors, and per-case filters without indexing editorial notes', async () => {
-  const records = await loadContent(path.resolve('content'));
+  const records = await loadContent(path.resolve('examples/site-data/content'));
   const previews = caseSearchRecords(records, true);
-  assert.equal(previews.length, 13);
-  assert.equal(new Set(previews.map(({ url }) => url)).size, 13);
+  assert.equal(previews.length, 7);
+  assert.equal(new Set(previews.map(({ url }) => url)).size, 7);
   assert.deepEqual(caseSearchRecords(records, false), []);
   for (const record of records) {
     if (record.collection === 'cases') {
       record.data.editorial_note = 'EDITORIAL_SECRET_SENTINEL';
       record.data.blocks.unused_private_block = 'UNUSED_BLOCK_SENTINEL';
-      const found = previews.find(({ url }) => url.endsWith(`/cases/${record.data.slug}/`))!;
-      assert.equal(found.url, `/cases/${record.data.slug}/`);
+      const found = previews.find(({ url }) => url.endsWith(`#${record.data.slug}`))!;
+      assert.equal(found.url, `${categoryUrl(record.data.chart, record.data.category)}#${record.data.slug}`);
       assert.deepEqual(found.filters.Network, record.data.networks.length ? record.data.networks.map((value) => value.split('-').map((part) => part[0].toUpperCase() + part.slice(1)).join(' ')) : ['Not recorded']);
     }
   }
@@ -340,10 +402,16 @@ test('search respects case visibility, exact anchors, and per-case filters witho
   if (study.collection !== 'cases') return;
   study.data.content_kind = 'case_study';
   study.data.publication_status = 'published';
+  study.data.case_number = '04837';
+  study.data.scope_summary = 'Trace the transfers in the engagement period.';
   assert.equal(caseSearchRecords(publicRecords, false).length, 1);
   assert.deepEqual(caseSearchRecords(publicRecords, false)[0].filters.Dataset, ['Case studies']);
+  assert.equal(caseSearchRecords(publicRecords, false)[0].meta.title, 'Case 04837');
+  assert.match(caseSearchRecords(publicRecords, false)[0].content, /04837/);
+  assert.match(caseSearchRecords(publicRecords, false)[0].content, /Trace the transfers in the engagement period/);
+  assert.equal('Status' in caseSearchRecords(publicRecords, false)[0].filters, false);
   study.data.category = publicRecords.filter((record) => record.collection === 'charts').find(({ data }) => data.slug === study.data.chart)!.data.categories.find(({ id }) => id !== study.data.category)!.id;
-  assert.equal(caseSearchRecords(publicRecords, false)[0].url, `/cases/${study.data.slug}/`);
+  assert.equal(caseSearchRecords(publicRecords, false)[0].url, `${categoryUrl(study.data.chart, study.data.category)}#${study.data.slug}`);
   publicRecords.splice(publicRecords.indexOf(study), 1);
   assert.equal(caseSearchRecords(publicRecords, false).length, 0);
 });
@@ -425,6 +493,13 @@ test('contact records validate public destinations and optional contact details'
   assert.equal(schemas.contacts.safeParse({ ...contact, social: { ...contact.social, phone: { label: 'Office', number: '+1 903 555 0123' } } }).success, false);
 });
 
+test('the contact name override is optional and preserves an explicit display name', () => {
+  const contact = { ...base, services_heading: 'Services', social: { title: 'Connect', description: 'Professional enquiries.', links: [] } };
+  assert.equal(schemas.contacts.parse(contact).social?.name, undefined);
+  assert.equal(schemas.contacts.parse({ ...contact, social: { ...contact.social, name: '   ' } }).social?.name, '');
+  assert.equal(schemas.contacts.parse({ ...contact, social: { ...contact.social, name: 'Different public name' } }).social?.name, 'Different public name');
+});
+
 test('contact selection rejects missing or draft records on published pages', () => {
   const profile: ContentRecord = { collection: 'profile', data: schemas.profile.parse({ ...base, name: 'Example', headline: 'Investigator', publication_status: 'published' }), body: 'Biography', file: 'profile/example.md' };
   const page: ContentRecord = { collection: 'pages', data: schemas.pages.parse({ ...base, title: 'Contact', profile: 'example', contact: 'example', publication_status: 'published' }), body: 'Contact', file: 'pages/contact.md' };
@@ -454,10 +529,47 @@ test('examples cannot be published as actual work and case facts are validated',
   assert.equal(schemas.cases.safeParse({ ...data, publication_status: 'published' }).success, false);
   assert.equal(schemas.cases.safeParse({ ...data, publication_status: 'published', content_kind: 'case_study' }).success, true);
   assert.equal(schemas.cases.safeParse({ ...data, networks: ['bitcoin', 'bitcoin'] }).success, false);
-  assert.equal(schemas.cases.safeParse({ ...data, case_status: 'completed', opened_on: '2026-02-01', closed_on: '2026-01-01' }).success, false);
-  assert.equal(schemas.cases.safeParse({ ...data, case_status: 'active', closed_on: '2026-01-01' }).success, false);
-  assert.equal(schemas.cases.safeParse({ ...data, metrics: { reported_loss_usd: 100 } }).success, false);
-  assert.equal(schemas.cases.safeParse({ ...data, metrics: { wallets_reviewed: -1 } }).success, false);
+  assert.equal(schemas.cases.safeParse({ ...data, opened_on: '2026-02-01', closed_on: '2026-01-01' }).success, false);
+  assert.equal(schemas.cases.safeParse({ ...data, closed_on: '2026-01-01' }).success, true);
+  assert.equal(schemas.cases.safeParse({ ...data, metrics: { reported_loss_usd: 100 } }).success, true);
+});
+
+test('transaction-time USD amounts allow omitted notes, preserve zero, and reject obsolete valuation fields', () => {
+  const data = { ...base, title: 'Case', chart: 'example', category: 'fraud' };
+  for (const field of ['reported_loss_usd', 'assets_reviewed_usd']) {
+    for (const amount of [0, 100.25]) {
+      const parsed = schemas.cases.parse({ ...data, metrics: { [field]: amount } });
+      assert.equal(parsed.metrics[field as keyof typeof parsed.metrics], amount);
+      assert.equal(parsed.metrics.amount_note, undefined);
+      assert.equal('valuation_date' in parsed.metrics, false);
+    }
+    for (const amount of [-1, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1]) {
+      assert.equal(schemas.cases.safeParse({ ...data, metrics: { [field]: amount } }).success, false);
+    }
+  }
+  const metrics = { reported_loss_usd: 100, amount_note: 'USD equivalent at 2024-04-01 prices, as specified by the client.' };
+  assert.deepEqual(schemas.cases.parse({ ...data, metrics }).metrics, { ...metrics, assets_reviewed_usd: null });
+  for (const valuation_date of [null, '2024-04-01']) {
+    assert.equal(schemas.cases.safeParse({ ...data, metrics: { ...metrics, valuation_date } }).success, false);
+  }
+});
+
+test('completed casebook records omit status and identifying activity counts', () => {
+  const data = { ...base, title: 'An anonymized investigation', chart: 'example', category: 'fraud' };
+  for (const case_status of ['completed', 'active', 'on_hold', 'unspecified']) {
+    assert.equal(schemas.cases.safeParse({ ...data, case_status }).success, false);
+  }
+  for (const field of ['wallets_reviewed', 'transactions_reviewed']) {
+    assert.equal(schemas.cases.safeParse({ ...data, metrics: { [field]: 3 } }).success, false);
+  }
+  const parsed = schemas.cases.parse({ ...data, case_number: '04837', scope_summary: 'Trace the transfers specified in the engagement.' });
+  assert.equal(parsed.case_number, '04837');
+  assert.equal(caseTitle(parsed), 'Case 04837');
+  assert.equal(caseTitle({ title: data.title }), data.title);
+  assert.equal('case_status' in parsed, false);
+  assert.equal('wallets_reviewed' in parsed.metrics, false);
+  assert.equal('transactions_reviewed' in parsed.metrics, false);
+  assert.equal(schemas.cases.safeParse({ ...data, case_number: '' }).success, false);
 });
 
 test('category shares use the full count total and do not normalize incomplete data', () => {
@@ -505,7 +617,7 @@ test('sunbursts filter each depth independently, preserve exact counts, and rese
   const second = { id: 'professional', data: schemas.charts.parse({ ...chart, slug: 'professional', title: 'Professional', publication_status: 'published' }) };
   const records = [makeCase('one', { subcategory: ['platform', 'exchange', 'fee'] }),
     makeCase('two', { subcategory: ['platform', 'exchange', 'freeze'] }),
-    makeCase('three', { subcategory: 'platform' }), makeCase('four', { category: 'other' }),
+    makeCase('three', { subcategory: ['platform'] }), makeCase('four', { category: 'other' }),
     makeCase('five', { chart: 'professional', subcategory: ['platform', 'exchange', 'fee'] })];
   const data = caseVisuals([makeChart(), second], records, 'case_study');
   const original = JSON.stringify(data);
@@ -539,33 +651,34 @@ test('sunbursts filter each depth independently, preserve exact counts, and rese
   assert.equal(JSON.stringify(data), original, 'Selections must not mutate shared data');
 });
 
-test('subcategory paths accept legacy scalars, retain unspecified cases, and follow Markdown reclassification', () => {
-  assert.equal(makeCase('legacy').data.subcategory, null);
-  for (const subcategory of [[], ['valid', null], ['valid', ''], ['UPPER'], [['nested']]]) {
+test('subcategory paths use arrays, retain unspecified cases, and follow Markdown reclassification', () => {
+  assert.deepEqual(makeCase('unspecified').data.subcategory, []);
+  assert.equal(schemas.cases.safeParse({ ...makeCase('empty').data, subcategory: [] }).success, true);
+  for (const subcategory of [null, 'bridge-exploit', ['valid', null], ['valid', ''], ['UPPER'], [['nested']]]) {
     assert.equal(schemas.cases.safeParse({ ...makeCase('bad').data, subcategory }).success, false);
   }
   assert.equal(schemas.cases.safeParse({ ...makeCase('bad').data, subcategory: ['bridge-exploit', 'protocol-exploit'] }).success, true);
   assert.equal(schemas.cases.safeParse({ ...makeCase('bad').data, subcategory: 'Bridge Exploit' }).success, false);
-  const records = [makeCase('one', { subcategory: 'bridge-exploit' }), makeCase('two'), makeCase('three', { category: 'other', subcategory: 'bridge-exploit' })];
+  const records = [makeCase('one', { subcategory: ['bridge-exploit'] }), makeCase('two'), makeCase('three', { category: 'other', subcategory: ['bridge-exploit'] })];
   const initial = caseVisuals([makeChart()], records, 'case_study').groups[0];
   assert.deepEqual(initial.categories[0].subcategories.map(({ id, count }) => [id, count]), [['bridge-exploit', 1], ['unspecified', 1]]);
   assert.equal(initial.categories[1].subcategories[0].count, 1, 'The same subcategory in another category stays separate');
   assert.equal(initial.categories[0].subcategories[0].url, '/investigations/example/fraud/#subcategory-case_study-bridge-exploit');
-  records[1].data.subcategory = 'bridge-exploit';
+  records[1].data.subcategory = ['bridge-exploit'];
   let changed = caseVisuals([makeChart()], records, 'case_study').groups[0];
   assert.deepEqual(changed.categories[0].subcategories.map(({ id, count }) => [id, count]), [['bridge-exploit', 2]]);
   records[0].data.category = 'other';
   changed = caseVisuals([makeChart()], records, 'case_study').groups[0];
   assert.deepEqual(changed.categories.map(({ subcategories }) => subcategories[0].count), [1, 2]);
-  records.push(makeCase('new', { subcategory: 'newly-discovered-type' }));
+  records.push(makeCase('new', { subcategory: ['newly-discovered-type'] }));
   changed = caseVisuals([makeChart()], records, 'case_study').groups[0];
   assert.ok(changed.categories[0].subcategories.some(({ id }) => id === 'newly-discovered-type'));
   assert.equal(changed.total, 4);
 });
 
 test('sunbursts exclude drafts and examples in production and handle empty or single-case charts', () => {
-  const records = [makeCase('public-case', { subcategory: 'public-type' }), makeCase('draft-case', { publication_status: 'draft', subcategory: 'draft-type' }),
-    makeCase('sample-case', { content_kind: 'example', publication_status: 'draft', subcategory: 'sample-type' })];
+  const records = [makeCase('public-case', { subcategory: ['public-type'] }), makeCase('draft-case', { publication_status: 'draft', subcategory: ['draft-type'] }),
+    makeCase('sample-case', { content_kind: 'example', publication_status: 'draft', subcategory: ['sample-type'] })];
   const publicData = caseVisuals([makeChart()], records, 'case_study').groups[0];
   const root = caseSunburst(publicData);
   assert.deepEqual(root.caseIds, ['public-case']);
@@ -583,35 +696,35 @@ test('sunbursts exclude drafts and examples in production and handle empty or si
 });
 
 test('example Markdown subcategories appear in search and remain isolated to their parent chart', async () => {
-  const records = await loadContent(path.resolve('content'));
+  const records = await loadContent(path.resolve('examples/site-data/content'));
   const charts = records.filter((entry) => entry.collection === 'charts').map((entry) => ({ id: entry.data.slug, data: entry.data }));
   const studies = records.filter((entry) => entry.collection === 'cases').map((entry) => ({ id: entry.data.slug, data: entry.data }));
   const data = caseVisuals(charts, studies, 'example', true);
-  assert.deepEqual(data.groups.map(({ total }) => total), [8, 5]);
+  assert.deepEqual(data.groups.map(({ total }) => total), [4, 3]);
   const hacks = data.groups[0].categories.find(({ id }) => id === 'hacks')!;
-  assert.deepEqual(hacks.subcategories.map(({ id, count }) => [id, count]), [['bridge-exploit', 1], ['protocol-exploit', 1]]);
+  assert.deepEqual(hacks.subcategories.map(({ id, count }) => [id, count]), [['bridge-exploit', 1]]);
   const divorce = data.groups[1].categories.find(({ id }) => id === 'divorce')!;
-  assert.deepEqual(divorce.subcategories.map(({ id }) => id), ['asset-disclosure', 'historical-holdings']);
-  const found = caseSearchRecords(records, true).find(({ url }) => url.endsWith('/cases/case-012/'))!;
-  assert.deepEqual(found.filters.CasePath, classificationKeys('criminal-investigations', ['hacks', 'bridge-exploit']));
+  assert.deepEqual(divorce.subcategories.map(({ id, count }) => [id, count]), [['asset-disclosure', 2]]);
+  const found = caseSearchRecords(records, true).find(({ url }) => url.endsWith('#case-003'))!;
+  assert.deepEqual(found.filters.CasePath, classificationKeys('criminal-investigations', ['hacks', 'bridge-exploit', 'contract-vulnerability']));
   assert.match(found.content, /Bridge Exploit/);
-  const deepSearch = caseSearchRecords(records, true).find(({ url }) => url.endsWith('/cases/case-011/'))!;
+  const deepSearch = caseSearchRecords(records, true).find(({ url }) => url.endsWith('#case-001'))!;
   assert.deepEqual(deepSearch.filters.CasePath, classificationKeys('criminal-investigations', ['pig-butchering', 'investment-platform', 'fake-exchange', 'withdrawal-fee']));
   const criminal = caseSunburst(data.groups[0]);
   assert.equal(sunburstSelection(criminal, 'criminal-investigations/pig-butchering').caseIds.size, 2);
-  assert.deepEqual([...sunburstSelection(criminal, 'criminal-investigations/pig-butchering/investment-platform/fake-exchange/withdrawal-fee').caseIds], ['case-011']);
+  assert.deepEqual([...sunburstSelection(criminal, 'criminal-investigations/pig-butchering/investment-platform/fake-exchange/withdrawal-fee').caseIds], ['case-001']);
 
 });
 
 test('Pagefind path filters select exactly the same descendants as each sunburst level', async () => {
-  const content = await loadContent(path.resolve('content'));
+  const content = await loadContent(path.resolve('examples/site-data/content'));
   const charts = content.filter((entry) => entry.collection === 'charts').map((entry) => ({ id: entry.data.slug, data: entry.data }));
   const studies = content.filter((entry) => entry.collection === 'cases').map((entry) => ({ id: entry.data.slug, data: entry.data }));
   const search = caseSearchRecords(content, true);
   for (const chart of caseVisuals(charts, studies, 'example', true).groups) {
     for (const node of sunburstNodes(caseSunburst(chart))) {
       const matches = search.filter(({ filters }) => filters.Investigation.includes(chart.title) && filters.CasePath.includes(node.id));
-      assert.deepEqual(matches.map(({ url }) => url.split('/').filter(Boolean).at(-1)).sort(), [...node.caseIds].sort());
+      assert.deepEqual(matches.map(({ url }) => url.split('#')[1]).sort(), [...node.caseIds].sort());
     }
   }
   const full = classificationKeys('criminal', ['fraud', 'platform', 'exchange']);
@@ -639,7 +752,7 @@ function fakePagefind() {
 
 test('one Pagefind controller handles queued chart clicks, sibling paths, switching investigations, and global reset', async () => {
   const litigation = { id: 'litigation', data: schemas.charts.parse({ ...chart, slug: 'litigation', title: 'Litigation Support Investigations', publication_status: 'published' }) };
-  const groups = caseVisuals([makeChart(), litigation], [makeCase('one', { subcategory: ['platform', 'exchange'] }), makeCase('two', { chart: 'litigation', subcategory: 'platform' })], 'case_study').groups;
+  const groups = caseVisuals([makeChart(), litigation], [makeCase('one', { subcategory: ['platform', 'exchange'] }), makeCase('two', { chart: 'litigation', subcategory: ['platform'] })], 'case_study').groups;
   const [criminal, civil] = groups;
   const root = caseSunburst(criminal), civilRoot = caseSunburst(civil);
   const deep = sunburstNodes(root).find(({ id }) => id.endsWith('/platform/exchange'))!;
@@ -648,14 +761,13 @@ test('one Pagefind controller handles queued chart clicks, sibling paths, switch
   const { instance, requests } = fakePagefind();
   const disconnect = controller.connect(instance);
   assert.deepEqual(requests.at(-1)?.filters.CasePath, [deep.id], 'A pre-load click is applied when Pagefind connects');
-  instance.triggerSearchWithFilters('wallet', { ...instance.searchFilters, Network: ['Ethereum'], Status: ['Active'] });
+  instance.triggerSearchWithFilters('wallet', { ...instance.searchFilters, Network: ['Ethereum'] });
   assert.equal(chartSearchSelection(criminal, root, controller.snapshot().filters).node.id, deep.id);
   controller.select(criminal, root.children![0]);
   assert.deepEqual(instance.searchFilters.Network, ['Ethereum'], 'Refining the same investigation retains other filters');
   controller.select(civil, civilRoot.children![0]);
   assert.deepEqual(instance.searchFilters.Investigation, ['Litigation Support Investigations']);
   assert.equal(instance.searchFilters.Network, undefined);
-  assert.equal(instance.searchFilters.Status, undefined);
   assert.ok(instance.searchFilters.CasePath[0].startsWith('litigation/'));
   assert.equal(instance.searchTerm, 'wallet', 'Investigation switches preserve the typed search');
   assert.equal(chartSearchSelection(criminal, root, controller.snapshot().filters).node, root);
@@ -706,14 +818,14 @@ test('pie groups and tree count each case once and follow category changes witho
   const after = caseVisuals([makeChart()], records, 'case_study');
   assert.deepEqual(after.groups[0].categories.map(({ count }) => count), [1, 2]);
   assert.deepEqual(after.tree.children![0].children!.map(({ count }) => count), [1, 2]);
-  assert.equal(descendantCases(after.tree).find(({ id }) => id === 'case:two')?.url, '/cases/two/');
+  assert.equal(descendantCases(after.tree).find(({ id }) => id === 'case:two')?.url, '/investigations/example/other/#two');
   check(after.tree);
 });
 
 test('case visuals separate examples, drafts, and hidden investigations and project only display fields', () => {
   const hidden = { ...makeChart(false), id: 'hidden' };
   const records = [
-    makeCase('public-case', { title: 'A [literal] title', description_short: 'Scope <detail>', networks: ['bitcoin'], case_status: 'active',
+    makeCase('public-case', { title: 'A [literal] title', description_short: 'Scope <detail>', networks: ['bitcoin'], case_number: '04837',
       blocks: { chart_label: 'Case 001', private_note: 'UNUSED_BLOCK_SENTINEL' }, editorial_note: 'EDITORIAL_SECRET_SENTINEL' }),
     makeCase('draft-case', { publication_status: 'draft' }),
     makeCase('sample-case', { content_kind: 'example', publication_status: 'draft' }),
@@ -723,10 +835,12 @@ test('case visuals separate examples, drafts, and hidden investigations and proj
   assert.equal(published.total, 1);
   assert.equal(published.groups.length, 1);
   const leaf = descendantCases(published.tree)[0];
-  assert.equal(leaf.label, 'Case 001');
-  assert.equal(leaf.url, '/cases/public-case/');
+  assert.equal(leaf.label, '04837');
+  assert.equal(leaf.title, 'Case 04837');
+  assert.equal(leaf.url, '/investigations/example/fraud/#public-case');
   assert.match(leaf.tooltip, /A \[literal\] title\nScope <detail>/);
-  assert.match(leaf.tooltip, /Active/);
+  assert.match(leaf.tooltip, /Case 04837/);
+  assert.doesNotMatch(leaf.tooltip, /Active|Status|Not recorded/);
   assert.match(leaf.tooltip, /Networks: Bitcoin/);
   assert.equal(published.groups[0].categories[0].url, '/investigations/example/fraud/#dataset-case_study');
   assert.doesNotMatch(JSON.stringify(published), /EDITORIAL_SECRET_SENTINEL|UNUSED_BLOCK_SENTINEL/);
@@ -788,11 +902,12 @@ test('empty datasets have known zero totals and no plotted proportions', () => {
 });
 
 test('unknown metrics remain unknown and financial coverage distinguishes zero from missing', () => {
-  const records = [makeCase('unknown'), makeCase('known', { opened_on: '2025-03-01', networks: ['bitcoin', 'ethereum'], case_status: 'active', metrics: { reported_loss_usd: 2500, valuation_date: '2025-03-01', amount_note: 'Documented reported loss.' } }), makeCase('zero', { metrics: { reported_loss_usd: 0, valuation_date: '2025-03-01', amount_note: 'Known zero.' }, networks: ['bitcoin'] })];
+  const records = [makeCase('unknown'), makeCase('known', { opened_on: '2025-03-01', networks: ['bitcoin', 'ethereum'], metrics: { reported_loss_usd: 2500 } }), makeCase('zero', { metrics: { reported_loss_usd: 0 }, networks: ['bitcoin'] })];
   const stats = caseStatistics(records);
   assert.deepEqual(stats.reportedLoss, { total: 2500, coverage: 2 });
   assert.deepEqual(stats.assetsReviewed, { total: 0, coverage: 0 });
-  assert.equal(stats.active, 1);
+  assert.equal('active' in stats, false);
+  assert.equal('statuses' in stats, false);
   assert.equal(stats.networks.find(({ label }) => label === 'bitcoin')?.count, 2);
   assert.equal(stats.years.find(({ label }) => label === 'Undated')?.count, 2);
 });
@@ -960,10 +1075,11 @@ test('credentials group new issuers automatically and order awards by year then 
 });
 
 test('credential program links, verification, and optional badge assets remain distinct', () => {
-  const base = { slug: 'credential', description_short: 'Description', name: 'Training', issuer: 'Issuer', credential_type: 'training', issued_year: 2026 };
+  const base = { slug: 'credential', description_short: 'Description', name: 'Training', issuer: 'Issuer', issued_year: 2026 };
   const record = schemas.credentials.parse({ ...base, course_url: 'https://issuer.example/course',
     verification_url: 'https://issuer.example/award/123', badge: { image: 'training-badge.svg', alt: 'Training badge', source_url: 'https://issuer.example/course' } });
   assert.notEqual(record.course_url, record.verification_url);
+  assert.equal(record.credential_type, undefined);
   assert.equal(schemas.credentials.parse(base).badge, undefined);
   assert.equal(schemas.credentials.safeParse({ ...base, course_url: 'javascript:alert(1)' }).success, false);
   assert.equal(schemas.credentials.safeParse({ ...base, badge: { image: '../badge.svg', alt: 'Badge' } }).success, false);

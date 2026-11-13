@@ -12,7 +12,6 @@ subcategory:
   - fake-exchange
   - account-access
 content_kind: example
-case_status: active
 opened_on: "2025-06-01"
 closed_on: null
 role: Example investigator role
@@ -25,11 +24,8 @@ services:
   - tracing
   - forensic-report
 metrics:
-  wallets_reviewed: 8
-  transactions_reviewed: 90
   reported_loss_usd: null
   assets_reviewed_usd: null
-  valuation_date: null
 blocks:
   chart_label: Example 002
 editorial_note: All case details and numeric values are fictional. Keep content_kind

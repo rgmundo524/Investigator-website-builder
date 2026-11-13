@@ -3,11 +3,18 @@ import { Sunburst } from '@amcharts/amcharts5/hierarchy';
 import settings from '../config/case-visuals.json';
 import { caseChartStyle, caseLabelColor } from './case-chart-style';
 import { caseSunburst, sunburstNodes, sunburstSelection, type SunburstNode } from './case-sunburst';
-import { caseSearchController, chartSearchSelection } from './case-search-filters';
-import type { CaseSunburstData, CaseVisual } from './case-visuals';
+import { caseSearchController, chartSearchSelection, type createCaseSearchController } from './case-search-filters';
+import type { CaseSunburstPayload, CaseVisual } from './case-visuals';
 
-export function createCaseSunburst(host: HTMLElement, figure: HTMLElement, data: CaseSunburstData,
-  motionEnabled: boolean): CaseVisual {
+type CaseSunburstOptions = {
+  controller?: Pick<ReturnType<typeof createCaseSearchController>, 'select' | 'subscribe' | 'reset'>;
+  resultsId?: string;
+};
+
+export function createCaseSunburst(host: HTMLElement, figure: HTMLElement, data: CaseSunburstPayload,
+  motionEnabled: boolean, options: CaseSunburstOptions = {}): CaseVisual {
+  const controller = options.controller ?? caseSearchController;
+  const resultsId = options.resultsId ?? 'case-search-results';
   const root = am5.Root.new(host);
   let resize: ResizeObserver | undefined;
   let unsubscribe: (() => void) | undefined;
@@ -16,6 +23,7 @@ export function createCaseSunburst(host: HTMLElement, figure: HTMLElement, data:
     const hierarchy = caseSunburst(data);
     const nodes = sunburstNodes(hierarchy);
     let selected = sunburstSelection(hierarchy);
+    let active = false;
     let ready = false;
     const series = root.container.children.push(Sunburst.new(root, {
       idField: 'id', categoryField: 'label', valueField: 'value', childDataField: 'children',
@@ -55,18 +63,8 @@ export function createCaseSunburst(host: HTMLElement, figure: HTMLElement, data:
     });
 
     const breadcrumbs = figure.querySelector<HTMLElement>('[data-sunburst-breadcrumbs]');
-    const reset = figure.querySelector<HTMLButtonElement>('[data-visual-action="sunburst-reset"]');
-    const investigation = figure.querySelector<HTMLButtonElement>('[data-visual-action="sunburst-investigation"]');
-    function button(node: SunburstNode, current = false) {
-      const element = document.createElement('button');
-      element.type = 'button'; element.dataset.visualAction = `sunburst-select:${node.id}`;
-      element.textContent = `${node.label} (${node.count})`;
-      element.setAttribute('aria-controls', `${host.id} case-search-results`);
-      if (current) element.setAttribute('aria-current', 'true');
-      return element;
-    }
     function select(id: string, publish = false) {
-      if (publish) { caseSearchController.select(data, sunburstSelection(hierarchy, id).node); return; }
+      if (publish) { controller.select(data, sunburstSelection(hierarchy, id).node); return; }
       selected = sunburstSelection(hierarchy, id);
       if (ready) {
         const item = series.getDataItemById(selected.focus.id);
@@ -74,15 +72,29 @@ export function createCaseSunburst(host: HTMLElement, figure: HTMLElement, data:
         for (const slice of series.slices) { slice.markDirtyKey('strokeWidth'); slice.markDirtyKey('strokeOpacity'); }
       }
       // Keep keyboard navigation on the same control when rebuilding breadcrumbs.
-      const active = document.activeElement;
-      const action = active instanceof HTMLElement && breadcrumbs?.contains(active) ? active.dataset.visualAction : undefined;
-      breadcrumbs?.replaceChildren(...selected.ancestors.flatMap((node, index) => {
-        const crumb = button(node, node === selected.node);
-        if (!index) return [crumb];
-        const separator = document.createElement('span');
-        separator.textContent = '→'; separator.setAttribute('aria-hidden', 'true');
-        return [separator, crumb];
-      }));
+      const focused = document.activeElement;
+      const action = focused instanceof HTMLElement && breadcrumbs?.contains(focused) ? focused.dataset.visualAction : undefined;
+      const path = [
+        { label: 'All', action: 'sunburst-reset', current: !active },
+        { label: data.title, action: `sunburst-select:${hierarchy.id}`, current: active && selected.node === hierarchy },
+        ...selected.ancestors.slice(1).map(node => ({ label: node.label, action: `sunburst-select:${node.id}`, current: node === selected.node })),
+      ];
+      const list = document.createElement('ol');
+      for (const [index, segment] of path.entries()) {
+        const item = document.createElement('li');
+        if (index) {
+          const separator = document.createElement('span');
+          separator.textContent = '/'; separator.setAttribute('aria-hidden', 'true');
+          item.append(separator);
+        }
+        const crumb = document.createElement('button');
+        crumb.type = 'button'; crumb.dataset.visualAction = segment.action;
+        crumb.textContent = segment.label;
+        crumb.setAttribute('aria-controls', `${host.id} ${resultsId}`);
+        if (segment.current) crumb.setAttribute('aria-current', 'true');
+        item.append(crumb); list.append(item);
+      }
+      breadcrumbs?.replaceChildren(list);
       if (action) {
         const replacement = [...figure.querySelectorAll<HTMLButtonElement>('[data-visual-action]')].find((element) => element.dataset.visualAction === action);
         (replacement ?? breadcrumbs?.querySelector<HTMLButtonElement>('[aria-current]'))?.focus({ preventScroll: true });
@@ -92,11 +104,10 @@ export function createCaseSunburst(host: HTMLElement, figure: HTMLElement, data:
     // leaf selection so filtering, breadcrumbs, and restored state cannot diverge.
     series.events.once('datavalidated', () => { ready = true; select(selected.node.id); });
     series.data.setAll([hierarchy]);
-    unsubscribe = caseSearchController.subscribe(({ filters, term }) => {
+    unsubscribe = controller.subscribe(({ filters }) => {
       const selection = chartSearchSelection(data, hierarchy, filters);
-      figure.dataset.searchActive = String(selection.active);
-      investigation?.setAttribute('aria-pressed', String(selection.active));
-      if (reset) reset.disabled = !term && !Object.keys(filters).length;
+      active = selection.active;
+      figure.dataset.searchActive = String(active);
       select(selection.node.id);
     });
     resize = new ResizeObserver(() => tooltip.label.set('maxWidth', Math.min(330, Math.max(160, host.clientWidth - 40))));
@@ -105,8 +116,7 @@ export function createCaseSunburst(host: HTMLElement, figure: HTMLElement, data:
       state: () => ({ sunburstNode: selected.node.id }), visible() {},
       motion(enabled) { series.set('animationDuration', enabled ? settings.sunburst.transitionDuration : 0); },
       action(action) {
-        if (action === 'sunburst-reset') caseSearchController.reset();
-        else if (action === 'sunburst-investigation') select(hierarchy.id, true);
+        if (action === 'sunburst-reset') controller.reset();
         else if (action.startsWith('sunburst-select:')) {
           const id = action.slice('sunburst-select:'.length);
           if (nodes.some((node) => node.id === id)) select(id, true);

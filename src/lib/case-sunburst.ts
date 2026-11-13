@@ -1,6 +1,6 @@
 import { readable } from './cases';
 import { formatShare } from './charts';
-import type { CaseSunburstData } from './case-visuals';
+import type { CaseSunburstPayload } from './case-visuals';
 
 export type SunburstNode = {
   id: string; label: string; path: string[]; count: number; caseIds: string[];
@@ -9,16 +9,16 @@ export type SunburstNode = {
 
 // A case follows exactly one path. Values live only on terminal buckets;
 // branch counts are metadata, never values added to their descendants.
-export function caseSunburst(data: CaseSunburstData): SunburstNode {
-  const build = (path: string[], label: string, records: CaseSunburstData['cases'],
+export function caseSunburst(data: CaseSunburstPayload): SunburstNode {
+  const build = (path: string[], label: string, records: CaseSunburstPayload['cases'],
     light: string, dark: string, parentCount: number, terminal = false): SunburstNode => {
     const id = `${data.id}/${path.join('/')}${terminal ? '/@unclassified' : ''}`;
     const node: SunburstNode = {
       id, label, path, count: records.length, caseIds: records.map(({ id }) => id), light, dark,
       tooltip: `${[data.title, ...path.map(readable), ...(terminal ? [label] : [])].join(' → ')}\n${records.length} ${data.kind === 'example' ? 'example ' : ''}${records.length === 1 ? 'case' : 'cases'}\n${formatShare(data.total ? records.length / data.total * 100 : 0)} of this investigation${path.length ? ` · ${formatShare(parentCount ? records.length / parentCount * 100 : 0)} of parent group` : ''}\nSelect to filter cases.`,
     };
-    const groups = new Map<string, CaseSunburstData['cases']>();
-    const direct: CaseSunburstData['cases'] = [];
+    const groups = new Map<string, CaseSunburstPayload['cases']>();
+    const direct: CaseSunburstPayload['cases'] = [];
     for (const record of records) {
       const next = record.path[path.length];
       if (terminal || next === undefined) direct.push(record);

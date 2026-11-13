@@ -8,9 +8,9 @@ description_short: Example profile. Replace with a short introduction to your wo
 blocks:
   initials: YN
   footer_tagline: Your professional focus
-  portrait_caption: Your professional headline
   directory_bio_short: Replace with a short biography for expert directories.
-  directory_bio: Replace with a longer biography for directories and professional introductions.
+  directory_bio: Replace with a longer biography for directories and professional
+    introductions.
 ---
 
 Introduce yourself and explain your background, the work you do, and how you help the people who visit your website.

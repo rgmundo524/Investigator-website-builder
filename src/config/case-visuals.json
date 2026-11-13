@@ -1,4 +1,8 @@
 {
   "sunburst": { "radius": 96, "innerRadius": 12, "visibleLevels": null, "transitionDuration": 350 },
-  "tree": { "minRadius": 26, "maxRadius": 62, "bulletDuration": 3500, "initialDepth": 2 }
+  "tree": {
+    "minRadius": 16, "maxRadius": 28, "bulletDuration": 3500, "initialDepth": 2,
+    "labelWidth": 148, "mobileLabelWidth": 112, "labelFontSize": 13,
+    "labelLineHeight": 16, "labelMaxLines": 3, "labelGap": 7, "labelPadding": 6
+  }
 }

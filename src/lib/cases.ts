@@ -4,27 +4,18 @@ import type { ContentData } from '../content/schemas';
 export type CaseStudy = { id: string; data: ContentData<'cases'> };
 export type Chart = { id: string; data: ContentData<'charts'> };
 export type CaseKind = CaseStudy['data']['content_kind'];
-type CaseworkPage = { data: Pick<ContentData<'pages'>, 'publication_status' | 'charts' | 'section_order'> };
-export const statusLabels = { active: 'Active', completed: 'Completed', on_hold: 'On hold', unspecified: 'Status not recorded' };
+export const caseTitle = (data: Pick<CaseStudy['data'], 'case_number' | 'title'>) => data.case_number ? `Case ${data.case_number}` : data.title;
 export const readable = (value: string) => value.split('-').map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-export const caseUrl = (id: string) => `/cases/${id}/`;
-
-// Page selection is part of publication, shared by routes and the search index.
-export function selectedCaseCharts<C extends Chart>(page: CaseworkPage | undefined, charts: C[], includeDrafts = false): C[] {
-  if (!page || (!includeDrafts && page.data.publication_status !== 'published') || !page.data.section_order.includes('charts')) return [];
-  const ids = new Set(page.data.charts);
-  return charts.filter(({ id, data }) => ids.has(id) && (includeDrafts || data.publication_status === 'published'));
-}
 
 export const subcategoryPath = (study: CaseStudy): string[] => {
   const value = study.data.subcategory;
-  return Array.isArray(value) ? [...value] : [value ?? 'unspecified'];
+  return value.length ? [...value] : ['unspecified'];
 };
 export const subcategoryId = (study: CaseStudy) => subcategoryPath(study)[0];
 export const subcategoryAnchor = (kind: CaseKind, id: string) => `subcategory-${kind}-${id}`;
 
 // Call with one category/dataset. Subcategories are discovered from case files,
-// including legacy records, without maintaining another central category list.
+// without maintaining another central category list.
 export function caseSubcategories<S extends CaseStudy>(studies: S[]) {
   const groups = new Map<string, S[]>();
   for (const study of studies) {
@@ -59,9 +50,6 @@ export function caseStatistics(studies: CaseStudy[]) {
   };
   return {
     total: studies.length,
-    active: studies.filter(({ data }) => data.case_status === 'active').length,
-    completed: studies.filter(({ data }) => data.case_status === 'completed').length,
-    statuses: groups(studies.map(({ data }) => statusLabels[data.case_status])),
     years: groups(studies.map(({ data }) => data.opened_on?.slice(0, 4) ?? 'Undated')).sort((a, b) => b.label.localeCompare(a.label)),
     networks: groups(studies.flatMap(({ data }) => [...new Set(data.networks)])),
     services: groups(studies.flatMap(({ data }) => [...new Set(data.services)])),

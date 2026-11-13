@@ -1,0 +1,8 @@
+---
+import type { ContentData } from '../content/schemas';
+import Portrait from './Portrait.astro';
+
+type Props = { portrait?: ContentData<'pages'>['portrait']; name?: string };
+const { portrait, name } = Astro.props;
+---
+<Portrait portrait={portrait} name={name} compact />

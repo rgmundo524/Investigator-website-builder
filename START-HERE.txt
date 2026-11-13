@@ -1,0 +1,71 @@
+INVESTIGATOR WEBSITE BUILDER - WINDOWS
+
+DOWNLOADS AND FUTURE UPDATES
+
+Get the latest app from GitHub:
+https://github.com/rgmundo524/Investigator-website-builder/releases/latest
+
+Under Assets, download investigator-website-builder-windows.zip.
+Direct download (the same link works for future releases):
+https://github.com/rgmundo524/Investigator-website-builder/releases/latest/download/investigator-website-builder-windows.zip
+
+Use that app ZIP rather than GitHub's Source code ZIP. No Git or GitHub account
+is needed for this public download.
+
+INSTALL NODE.JS ONCE
+
+1. Open the official Node.js download page:
+   https://nodejs.org/en/download/
+   Select version v24.x LTS, Windows, and Windows Installer (.msi).
+   Choose 24 even if the page initially offers a newer version.
+
+2. Choose x64 for most Intel/AMD PCs, or ARM64 for ARM PCs. To check, open
+   Windows Settings > System > About > System type. An x64-based processor
+   uses x64; an ARM-based processor uses ARM64.
+
+3. Open the downloaded .msi file. Click Next, accept the license, and keep the
+   normal destination and features, including npm package manager and Add to
+   PATH. Leave the optional additional/native tools checkbox unchecked if it
+   appears. Click Install, allow the installation if Windows asks, then Finish.
+   On a managed work computer, IT may need to approve the installation.
+
+4. Close any old builder or command windows before starting the builder.
+   Optional check: open Command Prompt from Start and enter node --version,
+   then npm --version. Node should show v24.x and npm should show a number.
+
+START THE BUILDER
+
+1. Extract this entire ZIP with File Explorer's Extract All.
+   Open the extracted investigator-website-builder folder.
+
+2. Double-click Start Builder.cmd.
+   The first start downloads the required software. Keep that window open.
+   The builder opens in your browser, normally at http://127.0.0.1:4310/.
+
+3. Create a blank content pack, or open an existing content folder.
+   Keep this content folder outside the builder folder.
+
+4. Under Preview & release, choose Start local preview and open its link.
+   Keep the editor and preview in separate browser tabs while you work.
+   Save, review, and apply changes to see them in the preview.
+
+5. When approved, apply records as published and build a published release.
+   Upload that generated website folder to the SAME Cloudflare project each time.
+
+Press Ctrl+C in the launcher window to stop the builder and its preview.
+No Git, Nix, Linux environment, or PowerShell policy changes are required.
+The first start needs internet access. Later starts reuse the installed files.
+
+UPDATE THE APP LATER
+
+Save your work, stop the old builder, and back up your complete content folder.
+Download the latest app ZIP from the GitHub release page above. Extract it into
+a new app folder, double-click its Start Builder.cmd, and open your EXISTING
+content folder. The first launch installs the new app's required software.
+Check the preview before removing the old app folder. Keep your content and
+backups outside both app folders. Updates are manual; there is no auto-updater.
+
+Full Windows guide: docs/windows.md
+
+This ZIP is the editing application. It is not your website or your editable
+content. Keep and back up your own content folder when updating the application.

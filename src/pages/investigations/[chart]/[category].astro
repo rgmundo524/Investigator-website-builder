@@ -1,47 +1,47 @@
 ---
-import { getCollection, getEntry } from 'astro:content';
+import { getCollection } from 'astro:content';
 import type { InferGetStaticPropsType } from 'astro';
 import SiteLayout from '../../../layouts/SiteLayout.astro';
-import { Icon } from 'astro-icon/components';
-import { caseRoutes, caseSubcategories, caseUrl, selectedCaseCharts, statusLabels, subcategoryAnchor } from '../../../lib/cases';
-import { includeDrafts, isVisible } from '../../../lib/content';
+import CaseRecord from '../../../components/CaseRecord.astro';
+import PageHeader from '../../../components/PageHeader.astro';
+import { caseRoutes, caseSubcategories, subcategoryAnchor } from '../../../lib/cases';
+import { includeDrafts, isVisible, pageProfile } from '../../../lib/content';
 import { categoryUrl, formatShare, summarizeCases } from '../../../lib/charts';
+import { siteSettings } from '../../../lib/site-settings';
 
 export async function getStaticPaths() {
-  const [charts, studies, page] = await Promise.all([getCollection('charts'), getCollection('cases'), getEntry('pages', 'casework')]);
-  return caseRoutes(selectedCaseCharts(page, charts, includeDrafts), studies, includeDrafts).map(({ chart, category, datasets }) => ({
+  const [charts, studies] = await Promise.all([getCollection('charts'), getCollection('cases')]);
+  return caseRoutes(charts, studies, includeDrafts).map(({ chart, category, datasets }) => ({
     params: { chart: chart.id, category: category.id }, props: { chart, category, datasets },
   }));
 }
 type Props = InferGetStaticPropsType<typeof getStaticPaths>;
 const { chart, category, datasets }: Props = Astro.props;
-const casework = await getEntry('pages', 'casework');
-const back = casework && isVisible(casework) ? { url: '/casework/#section-casework', label: 'Back to case charts' } : { url: '/', label: 'Back to home' };
+const casework = (await getCollection('pages', isVisible))
+  .filter(({ id, data }) => id !== 'home' && data.section_order.includes('charts') && data.charts.includes(chart.id))
+  .sort((a, b) => Number(b.id === 'casework') - Number(a.id === 'casework') || a.id.localeCompare(b.id))[0];
+const back = casework ? { url: `/${casework.id}/#section-casework`, label: 'Back to case charts' } : { url: '/', label: 'Back to home' };
+const profile = casework ? await pageProfile(casework) : undefined;
 ---
-<SiteLayout title={`${category.label} | ${chart.data.title}`} description={`Explore ${category.label.toLowerCase()} case records in ${chart.data.title.toLowerCase()}.`}>
-  <header class="container page-intro">
+<SiteLayout title={`${category.label} | ${chart.data.title}`} description={`Explore ${category.label.toLowerCase()} case records in ${chart.data.title.toLowerCase()}.`} profile={profile}>
+  <PageHeader portrait={casework?.data.portrait} name={profile?.data.name}>
     <p class="back-link"><a href={back.url}>← {back.label}</a></p>
     <p class="eyebrow">{chart.data.title}</p><h1>{category.label}</h1>
-  </header>
+  </PageHeader>
   <nav class="container category-nav" aria-label={`Categories in ${chart.data.title}`}>
     {chart.data.categories.map((item) => <a href={categoryUrl(chart.id, item.id)} aria-current={item.id === category.id ? 'page' : undefined}>{item.label}</a>)}
   </nav>
-  {datasets.map(({ kind, category: count, categories, studies }) => {
+  {datasets.filter(({ kind, studies }) => kind !== 'example' || studies.length > 0).map(({ kind, category: count, categories, studies }) => {
     const { slices, total } = summarizeCases(categories);
     const share = slices.find(({ id }) => id === category.id)?.percentage ?? null;
     return <section class="container content-section case-record-group" id={`dataset-${kind}`} aria-labelledby={`heading-${kind}`}>
       <h2 id={`heading-${kind}`}>{kind === 'example' ? 'Example cases' : 'Recorded cases'}</h2>
-      <p class="page-lead">{count.count} {kind === 'example' ? 'example' : 'recorded'} {count.count === 1 ? 'case' : 'cases'}{share !== null ? ` · ${formatShare(share)} of ${total} in this dataset` : ''}</p>
+      <p class="page-lead">{count.count?.toLocaleString(siteSettings.locale)} {kind === 'example' ? 'example' : 'recorded'} {count.count === 1 ? 'case' : 'cases'}{share !== null ? ` · ${formatShare(share, siteSettings.locale)} of ${total?.toLocaleString(siteSettings.locale)} in this dataset` : ''}</p>
       {kind === 'example' && <p class="notice">Illustrative examples, not actual engagements. These records are excluded from actual case statistics.</p>}
       {studies.length === 0 && <p>No {kind === 'example' ? 'examples' : 'case records'} have been added to this category yet.</p>}
       {caseSubcategories(studies).map((subcategory) => <section class="case-subcategory" id={subcategoryAnchor(kind, subcategory.id)} aria-labelledby={`${subcategoryAnchor(kind, subcategory.id)}-title`}>
-        <h3 class="case-subcategory-heading" id={`${subcategoryAnchor(kind, subcategory.id)}-title`}>{subcategory.label} · {subcategory.count} {subcategory.count === 1 ? 'case' : 'cases'}</h3>
-        {subcategory.studies.map((entry) => <article class="case-study case-summary" id={entry.id} aria-labelledby={`${entry.id}-title`}>
-          <h4 id={`${entry.id}-title`}><a href={caseUrl(entry.id)}>{entry.data.title}</a></h4>
-          <p class="lead">{entry.data.description_short}</p>
-          <p class="meta">{[entry.data.role, statusLabels[entry.data.case_status]].filter(Boolean).join(' · ')}</p>
-          <a class="text-link" href={caseUrl(entry.id)}>Read case details <Icon name="lucide:arrow-up-right" aria-hidden="true" /></a>
-        </article>)}
+        <h3 class="case-subcategory-heading" id={`${subcategoryAnchor(kind, subcategory.id)}-title`}>{subcategory.label} · {subcategory.count.toLocaleString(siteSettings.locale)} {subcategory.count === 1 ? 'case' : 'cases'}</h3>
+        {subcategory.studies.map((entry) => <CaseRecord entry={entry} heading="h4" />)}
       </section>)}
     </section>;
   })}

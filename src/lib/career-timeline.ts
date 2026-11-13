@@ -21,7 +21,7 @@ const palette = [
   ['#935326', '#f2b28c'], ['#745966', '#bb6552'],
 ];
 
-export function careerTimeline<T extends Position>(entries: T[], settings: TimelineSettings, asOf?: string) {
+export function careerTimeline<T extends Position>(entries: T[], settings: TimelineSettings, asOf?: string, locale = 'en-US') {
   const plot = plotExperience(entries, asOf);
   const earliest = entries.flatMap(({ data }) => data.periods.map(({ start }) => start)).sort()[0];
   if (settings.start && settings.start > (earliest ?? plot.asOf)) {
@@ -36,12 +36,12 @@ export function careerTimeline<T extends Position>(entries: T[], settings: Timel
     return { id: entry.id, organization: entry.data.organization,
       label: entry.data.blocks.organization_short ?? entry.data.organization,
       role: entry.data.role, description: entry.data.blocks.timeline_summary ?? entry.data.description_short ?? '',
-      dates: formatPeriods(entry.data.periods, plot.asOf), light, dark };
+      dates: formatPeriods(entry.data.periods, plot.asOf, locale), light, dark };
   });
   const spans = plot.rows.flatMap(({ entry, periods }) => periods.map((period) => ({
     id: entry.id, key: `${entry.id}-${period.start}`, from: monthTimestamp(period.start),
     to: period.planned ? monthTimestamp(period.start) : monthTimestamp(period.end ?? plot.asOf, 1),
-    dates: formatPeriods([period], plot.asOf), current: period.current,
+    dates: formatPeriods([period], plot.asOf, locale), current: period.current,
     scheduled: period.scheduled, planned: period.planned, category: '',
   }))).sort((a, b) => a.from - b.from || a.to - b.to || a.key.localeCompare(b.key));
   // Interval partitioning: simultaneous roles never cover one another. Reuse a
@@ -57,7 +57,7 @@ export function careerTimeline<T extends Position>(entries: T[], settings: Timel
     laneEnds[lane] = Math.max(span.to, span.from + 1);
     previousLane.set(span.id, lane);
   }
-  return { from: monthTimestamp(start), to, asOf: plot.asOf, start,
+  return { from: monthTimestamp(start), to, asOf: plot.asOf, start, locale,
     present: monthTimestamp(plot.asOf, 1), settings, roles, spans,
     lanes: laneEnds.map((_, index) => ({ category: String(index) })), undated: plot.undated };
 }

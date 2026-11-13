@@ -2,10 +2,9 @@
 import type { CollectionEntry } from 'astro:content';
 import ActivityCard from './ActivityCard.astro';
 import { selected } from '../lib/content';
-import { orderAboutEntries } from '../lib/about';
 type Props = { page: CollectionEntry<'pages'>; kind: 'volunteering' };
 const { page, kind } = Astro.props;
-const entries = orderAboutEntries(await selected('activities', page.data[kind]));
+const entries = await selected('activities', page.data[kind]);
 const labels = { volunteering: 'Volunteer work' };
 ---
 {entries.length > 0 && <section class="container content-section" id={`section-${kind}`} aria-labelledby={`heading-${kind}`}>

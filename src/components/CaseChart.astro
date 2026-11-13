@@ -1,9 +1,10 @@
 ---
 import { render, type CollectionEntry } from 'astro:content';
 import { formatShare } from '../lib/charts';
-import type { CaseSunburstData } from '../lib/case-visuals';
+import { sunburstPayload, type CaseSunburstData } from '../lib/case-visuals';
 import { caseSunburst } from '../lib/case-sunburst';
 import CaseClassificationList from './CaseClassificationList.astro';
+import { siteSettings } from '../lib/site-settings';
 
 type Props = { entry: CollectionEntry<'charts'>; visual: CaseSunburstData };
 const { entry, visual } = Astro.props;
@@ -18,15 +19,10 @@ const hierarchy = caseSunburst(visual);
     <h3 id={`${id}-title`}>{visual.title}</h3>
     <p class="chart-description">{entry.data.description_short}</p>
     <p class="chart-hint">Select a category, then follow its nested subcategories to filter the shared search below.</p>
-    <p class="chart-total">{total.toLocaleString('en-US')} {kind === 'example' ? 'example cases' : 'recorded cases'}</p>
+    <p class="chart-total">{total.toLocaleString(siteSettings.locale)} {kind === 'example' ? 'example cases' : 'recorded cases'}</p>
   </figcaption>
   {total > 0 ? <div data-visual-panel hidden>
-    <div class="case-visual-controls">
-      <button type="button" data-visual-action="sunburst-investigation" aria-controls="case-search-results" aria-pressed="false">Filter by this investigation</button>
-      <button type="button" data-visual-action="sunburst-reset" aria-controls={`${id} case-search-results`}>Reset search and filters</button>
-    </div>
-    <p class="chart-hint">Current classification path</p>
-    <nav class="case-visual-controls sunburst-breadcrumbs" data-sunburst-breadcrumbs aria-label={`${visual.title} filter path`}></nav>
+    <nav class="sunburst-breadcrumbs" data-sunburst-breadcrumbs aria-label={`${visual.title} filter path`}></nav>
     <div id={id} class="case-sunburst-canvas" data-visual-host role="group" aria-labelledby={`${id}-title`}></div>
   </div> : <p class="chart-hint">The chart will appear as case records are added.</p>}
   <p class="chart-hint" data-visual-status role="status" hidden></p>
@@ -41,15 +37,15 @@ const hierarchy = caseSunburst(visual);
                 <CaseClassificationList nodes={hierarchy.children?.find(({ path }) => path[0] === category.id)?.children ?? []} />
               </details>}
             </th>
-            <td>{category.count.toLocaleString('en-US')}</td>
-            <td>{total > 0 ? formatShare(category.percentage) : '—'}</td>
+            <td>{category.count.toLocaleString(siteSettings.locale)}</td>
+            <td>{total > 0 ? formatShare(category.percentage, siteSettings.locale) : '—'}</td>
           </tr>)}
         </tbody>
-        <tfoot><tr><th scope="row">Total</th><td>{total.toLocaleString('en-US')}</td><td>{total > 0 ? '100%' : '—'}</td></tr></tfoot>
+        <tfoot><tr><th scope="row">Total</th><td>{total.toLocaleString(siteSettings.locale)}</td><td>{total > 0 ? formatShare(100, siteSettings.locale) : '—'}</td></tr></tfoot>
       </table>
       <div class="chart-caption"><Content /></div>
   </details>
-  {total > 0 && <script is:inline type="application/json" data-visual-data set:html={JSON.stringify(visual).replace(/</g, '\\u003c')}></script>}
+  {total > 0 && <script is:inline type="application/json" data-visual-data set:html={JSON.stringify(sunburstPayload(visual)).replace(/</g, '\\u003c')}></script>}
 </figure>
 
 <style>

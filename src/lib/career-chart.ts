@@ -142,7 +142,7 @@ export function createCareerChart(host: HTMLElement, figure: HTMLElement, data: 
 
     const windowLabel = figure.querySelector<HTMLElement>('[data-career-window]');
     const buttons = Array.from(figure.querySelectorAll<HTMLButtonElement>('[data-career-action]'));
-    const format = new Intl.DateTimeFormat('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' });
+    const format = new Intl.DateTimeFormat(data.locale, { month: 'short', year: 'numeric', timeZone: 'UTC' });
     const minimum = Math.min(1, 183 * 86400000 / (data.to - data.from));
     const window = () => ({ start: xAxis.get('start', 0), end: xAxis.get('end', 1) });
     function updateControls() {

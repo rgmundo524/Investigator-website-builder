@@ -11,3 +11,4 @@ devenv.local.yaml
 *.log
 .DS_Store
 .site-data/
+.website-editor/

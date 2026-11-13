@@ -1,11 +1,12 @@
 ---
 import type { SunburstNode } from '../lib/case-sunburst';
+import { siteSettings } from '../lib/site-settings';
 type Props = { nodes: SunburstNode[] };
 const { nodes } = Astro.props;
 ---
 <ul class="classification-tree">
   {nodes.map((node) => <li>
-    <span>{node.label} <span class="meta">({node.count})</span></span>
+    <span>{node.label} <span class="meta">({node.count.toLocaleString(siteSettings.locale)})</span></span>
     {node.children?.length && <Astro.self nodes={node.children} />}
   </li>)}
 </ul>

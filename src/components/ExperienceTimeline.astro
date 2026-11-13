@@ -3,15 +3,16 @@ import type { CollectionEntry } from 'astro:content';
 import { formatMonth } from '../lib/dates';
 import { isCurrentPosition } from '../lib/experience';
 import { careerTimeline, type TimelineSettings } from '../lib/career-timeline';
+import { siteSettings } from '../lib/site-settings';
 type Props = { entries: CollectionEntry<'experience'>[]; settings: TimelineSettings };
 const { entries, settings } = Astro.props;
-const { undated, ...timeline } = careerTimeline(entries, settings);
+const { undated, ...timeline } = careerTimeline(entries, settings, undefined, siteSettings.locale);
 const lastMonth = new Date(timeline.to - 1).toISOString().slice(0, 7);
 ---
 <figure class="career-timeline" data-career-timeline aria-labelledby="career-timeline-title">
   <figcaption>
     <div><h3 id="career-timeline-title">Roles over time</h3><p id="career-timeline-help">Follow the line through my career. Select a shaded span or a position below to explore the work.</p></div>
-    <span class="career-extent">{formatMonth(timeline.start)} to {formatMonth(lastMonth)}</span>
+    <span class="career-extent">{formatMonth(timeline.start, siteSettings.locale)} to {formatMonth(lastMonth, siteSettings.locale)}</span>
   </figcaption>
   {timeline.spans.length > 0 && <>
     <div class="career-interactive" data-career-interactive hidden>
@@ -33,7 +34,7 @@ const lastMonth = new Date(timeline.to - 1).toISOString().slice(0, 7);
         <span><strong>{role.label}</strong><span>{role.role}</span><span class="career-dates">{role.dates}</span></span>
       </a></li>)}
     </ol>
-    <p class="career-note">Dates are recorded by month. Each end month is included. Current roles extend through {formatMonth(timeline.asOf)}.</p>
+    <p class="career-note">Dates are recorded by month. Each end month is included. Current roles extend through {formatMonth(timeline.asOf, siteSettings.locale)}.</p>
     <script is:inline type="application/json" data-career-data set:html={JSON.stringify(timeline).replace(/</g, '\\u003c')}></script>
   </>}
   {undated.length > 0 && <div class="career-undated">

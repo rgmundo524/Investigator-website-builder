@@ -1,5 +1,5 @@
 import type { CaseKind } from './cases';
-import type { CaseSunburstData } from './case-visuals';
+import type { CaseSunburstPayload } from './case-visuals';
 import { sunburstNodes, type SunburstNode } from './case-sunburst';
 
 export type CaseFilters = Record<string, string[]>;
@@ -15,7 +15,7 @@ const clean = (filters: CaseFilters): CaseFilters => Object.fromEntries(Object.e
 const same = (a: string[] = [], b: string[] = []) => JSON.stringify([...a].sort()) === JSON.stringify([...b].sort());
 export const equalCaseFilters = (a: CaseFilters, b: CaseFilters) => Object.keys({ ...clean(a), ...clean(b) }).every((key) => same(a[key], b[key]));
 
-export function filtersForChart(current: CaseFilters, data: CaseSunburstData, node: SunburstNode): CaseFilters {
+export function filtersForChart(current: CaseFilters, data: CaseSunburstPayload, node: SunburstNode): CaseFilters {
   const changed = (current.Investigation?.length && !same(current.Investigation, [data.title]))
     || (current.Dataset?.length && !same(current.Dataset, [datasetLabel(data.kind)]));
   const next: CaseFilters = changed ? {} : clean(current);
@@ -36,7 +36,7 @@ export function normalizeCaseFilters(previous: CaseFilters, incoming: CaseFilter
   return next;
 }
 
-export function chartSearchSelection(data: CaseSunburstData, root: SunburstNode, filters: CaseFilters) {
+export function chartSearchSelection(data: CaseSunburstPayload, root: SunburstNode, filters: CaseFilters) {
   const active = same(filters.Investigation, [data.title]) && (!filters.Dataset?.length || same(filters.Dataset, [datasetLabel(data.kind)]));
   if (!active) return { active: false, node: root };
   const nodes = sunburstNodes(root);
@@ -68,7 +68,7 @@ export function createCaseSearchController() {
   return {
     snapshot: () => snapshot,
     subscribe(listener: (snapshot: CaseSearchSnapshot) => void) { listeners.add(listener); listener(snapshot); return () => { listeners.delete(listener); }; },
-    select(data: CaseSunburstData, node: SunburstNode) { commit({ term: snapshot.term, filters: filtersForChart(snapshot.filters, data, node) }); },
+    select(data: CaseSunburstPayload, node: SunburstNode) { commit({ term: snapshot.term, filters: filtersForChart(snapshot.filters, data, node) }); },
     reset() { commit({ term: '', filters: {} }); },
     connect(next: PagefindCaseInstance) {
       instance = next;

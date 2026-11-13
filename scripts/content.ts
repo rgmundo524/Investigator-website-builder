@@ -1,10 +1,10 @@
 import { readdir, readFile } from 'node:fs/promises';
-import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { parseDocument } from 'yaml';
 import { createProcessor } from '@mdx-js/mdx';
 import { schemas, relationships, type CollectionName, type ContentRecord } from '../src/content/schemas';
 import { resolveSiteData } from './site-data';
+import { validateSharedPages } from '../src/lib/shared-values';
 
 export async function loadContent(root = resolveSiteData().contentDir): Promise<ContentRecord[]> {
   const records: ContentRecord[] = [];
@@ -13,11 +13,13 @@ export async function loadContent(root = resolveSiteData().contentDir): Promise<
       const source = (await readFile(file, 'utf8')).replace(/^\uFEFF/, '');
       const match = source.match(/^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/);
       if (!match) throw new Error(`${file}: expected YAML frontmatter enclosed by --- lines.`);
-      const document = parseDocument(match[1], { uniqueKeys: true });
+      // Astro recognizes unquoted YAML dates as timestamps. Match that behavior
+      // so the content check catches them before a later Astro build fails.
+      const document = parseDocument(match[1], { uniqueKeys: true, customTags: ['timestamp'] });
       if (document.errors.length) throw new Error(`${file}: ${document.errors.map((error) => error.message).join('; ')}`);
       const parsed = schemas[collection].safeParse(document.toJS());
       if (!parsed.success) {
-        throw new Error(`${file}:\n${parsed.error.issues.map((issue) => `  ${issue.path.join('.') || 'frontmatter'}: ${issue.message}`).join('\n')}`);
+        throw new Error(`${file}:\n${parsed.error.issues.map((issue) => `  ${issue.path.join('.') || 'frontmatter'}: ${issue.message}`).join('\n')}\nUse quoted strings for dates, for example "2026-01-31".`);
       }
       const body = source.slice(match[0].length).trim();
       if (!body) throw new Error(`${file}: add the long description below the frontmatter.`);
@@ -25,18 +27,7 @@ export async function loadContent(root = resolveSiteData().contentDir): Promise<
       records.push({ collection, data: parsed.data, body, file } as ContentRecord);
     }
   }
-  const dataRoot = path.dirname(root);
-  for (const record of records) {
-    if (record.collection === 'profile' && record.data.cv
-      && !existsSync(path.join(dataRoot, 'public', record.data.cv.url.slice(1)))) {
-      throw new Error(`${record.file}: prepared CV is missing from public${record.data.cv.url}.`);
-    }
-    if (record.collection === 'pages' && record.data.slug === 'cv') {
-      throw new Error(`${record.file}: cv is reserved for the generated professional CV.`);
-    }
-  }
-  const networks = existsSync(path.join(dataRoot, 'site.json')) ? resolveSiteData(dataRoot).caseNetworks : undefined;
-  validateRecords(records, { networks });
+  validateRecords(records);
   return records;
 }
 
@@ -52,7 +43,7 @@ async function markdownFiles(directory: string): Promise<string[]> {
   return files.flat().sort();
 }
 
-export function validateRecords(records: ContentRecord[], options: { networks?: string[] } = {}): void {
+export function validateRecords(records: ContentRecord[]): void {
   const index = new Map<string, ContentRecord>();
   const repositories = new Set<string>();
   for (const record of records) {
@@ -71,22 +62,24 @@ export function validateRecords(records: ContentRecord[], options: { networks?: 
       if (chart?.collection === 'charts' && !chart.data.categories.some(({ id }) => id === record.data.category)) {
         throw new Error(`${record.file}: category references missing charts/${record.data.chart}/${record.data.category}.`);
       }
-      if (options.networks) {
-        const unknown = record.data.networks.filter((network) => !options.networks!.includes(network));
-        if (unknown.length) throw new Error(`${record.file}: unknown network IDs: ${unknown.join(', ')}. Use or extend case_networks in site.json.`);
+    }
+    if (record.collection === 'pages' && record.data.contact_cta) {
+      const reference = record.data.contact_cta;
+      const contact = index.get(`contacts/${reference.contact}`);
+      if (!contact || contact.collection !== 'contacts') throw new Error(`${record.file}: contact_cta references missing contacts/${reference.contact}.`);
+      if (record.data.publication_status === 'published' && contact.data.publication_status !== 'published') {
+        throw new Error(`${record.file}: contact_cta references draft contacts/${reference.contact}. Publish that contact record before publishing this page.`);
       }
-      if (chart?.collection === 'charts' && chart.data.subcategory_paths.length) {
-        const value = record.data.subcategory;
-        const casePath = [record.data.category, ...(Array.isArray(value) ? value : value ? [value] : [])];
-        if (!chart.data.subcategory_paths.some((allowed) => casePath.every((part, index) => allowed[index] === part))) {
-          throw new Error(`${record.file}: classification is not a configured subcategory_paths prefix in charts/${chart.data.slug}.`);
-        }
-      }
+      const service = contact.data.services.find(({ id }) => id === reference.service);
+      if (!service) throw new Error(`${record.file}: contact_cta references missing service ${reference.service} in contacts/${reference.contact}.`);
+      if (!service.enabled) throw new Error(`${record.file}: contact_cta references disabled service ${reference.service} in contacts/${reference.contact}. Enable it or choose another service.`);
     }
     for (const [field, collection] of Object.entries(relationships[record.collection] ?? {})) {
       const value = (record.data as unknown as Record<string, unknown>)[field];
       if (value === undefined) continue;
-      const ids = typeof value === 'string' ? [value] : value as string[];
+      const ids = record.collection === 'pages' && field === 'skill_groups'
+        ? record.data.skill_groups.flatMap(({ skills }) => skills)
+        : typeof value === 'string' ? [value] : value as string[];
       if (new Set(ids).size !== ids.length) throw new Error(`${record.file}: duplicate reference in ${field}.`);
       for (const id of ids) {
         const target = index.get(`${collection}/${id}`);
@@ -107,4 +100,5 @@ export function validateRecords(records: ContentRecord[], options: { networks?: 
       }
     }
   }
+  validateSharedPages(records);
 }

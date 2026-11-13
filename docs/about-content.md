@@ -1,14 +1,90 @@
-# About: skills, participation, hobbies, and projects
+# About: expertise, work examples, and personal interests
 
 `content/pages/about.md` controls section order and selects every displayed record.
-Use `section_order: [interests, volunteering, organizations, skills, github]`
-to reproduce the current layout, or reorder/remove those names. Empty selections
-render no section. Hobbies and community participation introduce the person before
-the technical skill inventory. The professional biography and expertise remain on Work History.
+An About page can introduce how an investigator works, show one public example,
+and then add personal interests. Reuse existing expertise and project records
+instead of copying a resume or making a second version of their descriptions.
+For example, use `section_order: [expertise, projects, organizations, personal_photos, contact_cta]`.
+Each section is optional; empty record selections render no section. Detailed work
+history and credentials can remain on their own pages.
+
+In the builder, **Page presentation** controls concise expertise and project
+previews. **Closing enquiry** chooses an existing organization contact service.
+The **Page sections** controls select and order sections and their records.
+Save and review page changes before applying them. After updating the builder
+code, save any unsaved edits, restart the builder yourself, and refresh its tab
+to load the new controls and validation rules.
+
+## Professional introduction and reusable records
+
+The page body is its introduction. Explain the questions you investigate, the
+analysis you perform, and how you explain findings. Select a few relevant
+`expertise` records and one supported `projects` example. Keep a project's
+contribution accurate, and link public work when available. Selecting a record
+does not change that record or its presentation on another page.
+
+Use `blocks.expertise_heading` / `blocks.expertise_intro` and
+`blocks.projects_heading` / `blocks.projects_intro` for page-specific context.
+The optional `compact_sections` setting shows concise previews with longer bodies
+under **Read more**, while keeping headings, summaries, and reference links visible:
+
+```yaml
+compact_sections: [expertise, projects]
+```
+
+Only `expertise` and `projects` are supported. Omit the setting or use `[]` to
+retain expanded bodies. These choices affect this page only; they do not hide a
+section or change the selected records.
+
+## Closing enquiry
+
+A page can end with a focused invitation to contact one organization. Choose
+**Include a closing enquiry section**, a contact record, and an enabled
+organization service. The builder reads applied contact records, keeping saved
+but unavailable selections visible so they can be corrected or removed. A page
+being published requires a published contact record.
+
+```yaml
+contact_cta:
+  contact: investigator-contact
+  service: organization-id
+section_order: [expertise, projects, personal_photos, contact_cta]
+blocks:
+  contact_heading: Have a matter to discuss?
+  contact_description: Get in touch to discuss the questions and available records.
+  contact_button_label: Discuss an investigation
+```
+
+`contact` is the slug of a record in `content/contacts/`; `service` is the ID of
+an enabled card in that record's `services` list. The destination reuses the
+service's enabled booking link, otherwise its email, otherwise its enquiry link.
+Email addresses and destination URLs stay in the contact record. Leave the page's
+description or button label blank to use the service's corresponding defaults.
+Changing those source details updates every page that uses them after rebuilding.
+
+This is separate from the page's top-level `contact` setting, which displays
+contact cards and uses that contact record's body as the introduction. A closing
+enquiry does not replace the page introduction. Enabling it appends `contact_cta`
+to `section_order`; its position can be changed there. Turning it off removes
+both its assignment and that section. Missing records, missing service IDs, and
+disabled services must be corrected before applying the page.
+
+## Personal interests and other optional sections
+
+Personal photos work well after the professional material. Use a coherent pair
+of real pictures, a short introduction, and factual captions. Each image is
+cropped to a 3:2 frame; keep important subjects away from the edges. Generated
+placeholders should remain identified until replaced. See [photos and local
+images](portrait-photos.md) for upload details.
+
+Skills, volunteering, memberships, hobbies, and GitHub projects can also be
+included with their names in `section_order`:
 
 | Section | Subject files | Page selection | Template |
 | --- | --- | --- | --- |
-| Skills | `content/skills/` | `skills` | `templates/skills.md` |
+| Expertise | `content/expertise/` | `expertise` | `templates/expertise.md` |
+| Work examples | `content/projects/` | `projects` | `templates/projects.md` |
+| Skills | `content/skills/` | `skill_groups[].skills` | `templates/skills.md` |
 | Volunteer work | `content/activities/`, `kind: volunteering` | `volunteering` | `templates/activities.md` |
 | Organizations → Professional Organizations | `content/activities/`, `kind: memberships` | `memberships` | `templates/activities.md` |
 | Organizations → DAOs | `content/activities/`, `kind: daos` | `daos` | `templates/activities.md` |
@@ -26,41 +102,57 @@ into its own activity file, so it is not repeated among the hobbies.
 
 ## Skill ratings
 
-Several related skills share one card. The `group` field on each skill determines
-its card; the current groups are Programming, Systems, and Data and analysis.
-The grid displays three cards per row on desktop, two on medium screens, and one
-on small screens. Each skill stays in its own reusable Markdown file, with its
-own symbols and an expandable Details section inside the group card.
+Several related skills share one card. In **Pages → About → Skills**, groups are
+listed in their website order, with their selected skills underneath. Move a
+group to change the card order. Move a skill up or down to change its position
+within that group. Use the skill’s group selector to move it into another group.
+Add a group, edit its name, and choose skills from the reusable library. Removing
+a selection keeps the skill record; an empty group is omitted from the website.
 
-Each skill has a title, short description, longer Markdown body, `group`, `icon`,
-`display_order`, and `proficiency`. Set the rating from 1 to 5 in half-point steps:
+Grouping and ordering belong to the page, so the same reusable skill can be
+arranged differently on another page. Each skill appears at most once on a page.
+The grid displays three cards per desktop row, two on medium screens and one on
+small screens. A skill’s title, description, Markdown body, icon and rating remain
+in its reusable file. Set `proficiency` from 1 to 5 in half-point steps:
 
-| Value | Displayed level |
+| Value | Website display |
 | --- | --- |
-| `null` | Not yet rated; five outlined symbols, no numeric meter |
-| `1` | Foundational |
-| `2` | Developing |
-| `3` | Proficient |
-| `4` | Advanced |
-| `5` | Expert |
+| `null` | The skill and details appear without rating symbols or a score |
+| `1` | One filled symbol and `1/5` |
+| `2` | Two filled symbols and `2/5` |
+| `3` | Three filled symbols and `3/5` |
+| `4` | Four filled symbols and `4/5` |
+| `5` | Five filled symbols and `5/5` |
 
 For example, `proficiency: 3` fills exactly three of the five symbols and shows
-`3/5 · Proficient`. These are self-assessments, not third-party credentials.
-`proficiency: 2.5` fills two complete symbols and half of the third, and labels
-the level as between Developing and Proficient. Both dots and stars preserve the
-fraction; the accessible meter announces the same numeric value.
+`3/5`. These are self-assessments, not third-party credentials. The website omits
+qualitative level names and the explanatory scale.
+`proficiency: 2.5` fills two complete symbols and half of the third, and shows
+`2.5/5`. Both dots and stars preserve the fraction; the accessible meter announces
+the same numeric value.
 `assessed_on` optionally records a quoted `YYYY-MM-DD` date. Put specific examples
 and evidence links in the body and `links` rather than relying on a score alone.
 
 On the page, `skill_symbols: dots` selects red dots; `stars` selects red stars.
-`skill_group_order` selects the group order; unlisted groups follow alphabetically.
-Within each group, lower `display_order` values appear first, with the page list
-breaking ties. Skill entries can be reused on other pages.
+The page’s `skill_groups` array defines both levels of order:
 
-The original seven skills remain an unrated starter selection. Set proficiency
-from your own self-assessment; leave unknown levels as `null`. The copyable
-template's 3/5 rating is illustrative. A resume update date does not necessarily
-establish when a skill was assessed, so record `assessed_on` only when known.
+```yaml
+skill_groups:
+  - name: Investigation
+    skills: [transaction-analysis, open-source-research]
+  - name: Communication
+    skills: [report-writing, public-speaking]
+```
+
+Groups appear in array order; skills appear in each group’s `skills` order.
+There is no separate global skill list or group-order list. Skill records have
+no group assignment, and editing page grouping does not rewrite their content.
+
+Leave proficiency as `null` for skills you want to present without a rating,
+including published skills. For rated skills, enter your own self-assessment
+from 1 to 5 in half-point steps. The copyable template's 3/5 rating is
+illustrative. A resume update date does not necessarily establish when a skill
+was assessed, so record `assessed_on` only when known.
 
 ## Volunteering, memberships, and DAOs
 
@@ -93,7 +185,8 @@ Certification ownership does not establish membership in the issuing association
 The site reuses [Astro Icon](https://www.astroicon.dev/guides/components/) with
 locally bundled Lucide icons for cards and skill symbols. Rated skills expose a
 native HTML meter with a descriptive accessible value; the visual dots/stars are
-decorative and the score also appears as text. Unrated skills never imply a zero.
+decorative and the score also appears as text. Draft skills without an assessment
+show their name and details without a rating display.
 See the [W3C meter pattern](https://www.w3.org/WAI/ARIA/apg/patterns/meter/).
 No client JavaScript is needed for skill or activity cards. Existing translucent
 surfaces use the same theme variables as the rest of the site.

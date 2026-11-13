@@ -11,7 +11,6 @@ subcategory:
   - payment-dispute
   - invoice-reconciliation
 content_kind: example
-case_status: completed
 opened_on: "2025-06-01"
 closed_on: "2025-09-01"
 role: Example investigator role
@@ -24,11 +23,8 @@ services:
   - tracing
   - forensic-report
 metrics:
-  wallets_reviewed: 3
-  transactions_reviewed: 22
   reported_loss_usd: null
   assets_reviewed_usd: null
-  valuation_date: null
 blocks:
   chart_label: Example 007
 editorial_note: All case details and numeric values are fictional. Keep content_kind

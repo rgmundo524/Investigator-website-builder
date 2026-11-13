@@ -4,6 +4,7 @@ import { includeDrafts } from '../lib/content';
 import { eligibleCases } from '../lib/cases';
 type Props = { charts: CollectionEntry<'charts'>[] };
 const cases = eligibleCases(Astro.props.charts, await getCollection('cases'), includeDrafts);
+const filters = ['Dataset', 'Investigation', 'Category', 'Network'];
 ---
 {cases.length > 0 && <section class="case-search" id="case-search" data-case-search aria-label="Case search">
   <p class="meta" data-case-search-status role="status" hidden></p>
@@ -11,7 +12,7 @@ const cases = eligibleCases(Astro.props.charts, await getCollection('cases'), in
   <pagefind-config instance="cases" bundle-path="/pagefind/" faceted preload></pagefind-config>
   <pagefind-input instance="cases" placeholder="Search case summaries…"></pagefind-input>
   <div class="case-search-filters">
-    {['Dataset', 'Investigation', 'Category', 'Network', 'Status'].map((filter) => <pagefind-filter-dropdown instance="cases" filter={filter} label={filter} {...(['Dataset', 'Investigation', 'Category'].includes(filter) ? { 'single-select': '', 'show-empty': '' } : {})}></pagefind-filter-dropdown>)}
+    {filters.map((filter) => <pagefind-filter-dropdown instance="cases" filter={filter} label={filter} {...(['Dataset', 'Investigation', 'Category'].includes(filter) ? { 'single-select': '', 'show-empty': '' } : {})}></pagefind-filter-dropdown>)}
   </div>
   <div data-case-search-selection hidden>
     <p class="case-search-path" data-case-search-path aria-live="polite" hidden></p>

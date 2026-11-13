@@ -8,7 +8,6 @@ name: Credential name
 issuer: Issuing organization
 # Use the same issuer spelling to group related credentials.
 # Group display order is configured once via issuer_order in content/pages/credentials.md.
-credential_type: training
 issued_year: 2026
 # course_url: https://issuer.example/training/course
 # verification_url: https://issuer.example/verify/your-credential

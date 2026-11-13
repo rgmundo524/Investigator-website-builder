@@ -12,9 +12,8 @@ subcategory:
   - fake-exchange
   - withdrawal-fee
 content_kind: example
-case_status: completed
-opened_on: "2025-06"
-closed_on: "2025-09"
+opened_on: "2025-06-01"
+closed_on: "2025-09-01"
 role: Example investigator role
 networks:
   - ethereum
@@ -25,13 +24,9 @@ services:
   - tracing
   - forensic-report
 metrics:
-  addresses_reviewed: 12
-  wallets_reviewed: null
-  transactions_reviewed: 150
   reported_loss_usd: 25000
   assets_reviewed_usd: null
-  valuation_date: "2025-06-01"
-  amount_note: Fictional example value. This is not an actual loss or recovery amount.
+  amount_note: "Fictional example value. This is not an actual loss or recovery amount. Example valuation date: 2025-06-01."
 blocks:
   chart_label: Example 001
 editorial_note: All case details and numeric values are fictional. Keep content_kind

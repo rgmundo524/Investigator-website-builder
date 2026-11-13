@@ -11,7 +11,6 @@ subcategory:
   - wallet-drainer
   - token-approval
 content_kind: example
-case_status: unspecified
 opened_on: null
 closed_on: null
 role: Example investigator role
@@ -24,11 +23,8 @@ services:
   - tracing
   - forensic-report
 metrics:
-  wallets_reviewed: null
-  transactions_reviewed: null
   reported_loss_usd: null
   assets_reviewed_usd: null
-  valuation_date: null
 blocks:
   chart_label: Example 004
 editorial_note: All case details and numeric values are fictional. Keep content_kind

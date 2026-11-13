@@ -2,12 +2,17 @@
 import { getCollection, getEntry, render } from 'astro:content';
 import SiteLayout from '../layouts/SiteLayout.astro';
 import Portrait from '../components/Portrait.astro';
+import PersonalPhotos from '../components/PersonalPhotos.astro';
 import { Icon } from 'astro-icon/components';
-import { isVisible, pageProfile, selected } from '../lib/content';
+import { includeDrafts, isVisible, pageProfile, selected } from '../lib/content';
+import { publicLocation } from '../lib/public-profile';
+import { sectionDestination } from '../lib/section-placement';
 
 const home = await getEntry('pages', 'home');
 const page = home && isVisible(home) ? home : undefined;
 const profile = await pageProfile(page);
+const hasPortrait = page?.data.portrait?.enabled !== false && Boolean(page?.data.portrait?.images.length);
+const location = profile ? publicLocation(profile.data) : undefined;
 const intro = page ? await render(page) : undefined;
 const Intro = intro?.Content;
 const expertise = page ? await selected('expertise', page.data.expertise) : [];
@@ -15,22 +20,27 @@ const experience = page ? await selected('experience', page.data.experience) : [
 const projects = page ? await selected('projects', page.data.projects) : [];
 const visiblePages = await getCollection('pages', isVisible);
 const hasPage = (id: string) => visiblePages.some((entry) => entry.id === id);
+const expertiseDestination = expertise.length
+  ? sectionDestination(visiblePages, 'expertise', await getCollection('expertise', isVisible), { includeDrafts }) : undefined;
+const featuredProjects = projects.map((entry) => ({ entry,
+  destination: sectionDestination(visiblePages, 'projects', projects, { includeDrafts, recordId: entry.id }),
+}));
 ---
 <SiteLayout title={page?.data.title ?? 'Site in preparation'} description={page?.data.description_short ?? 'A personal website in preparation.'} profile={profile}>
   {page && profile ? <>
-    <section class="container hero">
+    <section class:list={['container', 'hero', { 'hero-with-portrait': hasPortrait }]}>
       <div class="hero-copy">
         <p class="eyebrow">{profile.data.headline}</p>
         <h1>{profile.data.name}</h1>
+        {location && <p class="meta">{location}</p>}
         <p class="hero-statement">{page.data.blocks.hero_statement}</p>
         {Intro && <div class="hero-intro"><Intro /></div>}
         <div class="actions">
           {hasPage('casework') && <a class="button button-primary" href="/casework/">Explore my work <Icon name="lucide:arrow-up-right" aria-hidden="true" /></a>}
           {hasPage('work-history') && <a class="text-link" href="/work-history/">Work history <Icon name="lucide:arrow-right" aria-hidden="true" /></a>}
-          <a class="text-link" href="/cv/">Professional CV <Icon name="lucide:arrow-right" aria-hidden="true" /></a>
         </div>
       </div>
-      <Portrait profile={profile} />
+      <Portrait portrait={page.data.portrait} name={profile.data.name} />
     </section>
     {experience.length > 0 && <div class="container experience-strip">
       <span class="eyebrow">{page.data.blocks.experience_label}</span>
@@ -38,22 +48,23 @@ const hasPage = (id: string) => visiblePages.some((entry) => entry.id === id);
     </div>}
     {expertise.length > 0 && <section class="container home-section">
       <div class="section-heading"><div><p class="eyebrow">Areas of focus</p><h2>{page.data.blocks.expertise_heading}</h2></div>
-        {hasPage('work-history') && <a class="text-link" href="/work-history/#section-expertise">All areas of expertise <Icon name="lucide:arrow-right" aria-hidden="true" /></a>}
+        {expertiseDestination && <a class="text-link" href={expertiseDestination}>All areas of expertise <Icon name="lucide:arrow-right" aria-hidden="true" /></a>}
       </div>
       <div class="expertise-grid">{expertise.map((entry, index) => <article class="expertise-preview">
         <span class="section-number">{String(index + 1).padStart(2, '0')}</span>
-        <h3>{hasPage('work-history') ? <a href={`/work-history/#${entry.id}`}>{entry.data.title}</a> : entry.data.title}</h3>
+        <h3>{entry.data.title}</h3>
         <p>{entry.data.description_short}</p>
       </article>)}</div>
     </section>}
     {projects.length > 0 && <section class="featured-work"><div class="container featured-inner">
       <div><p class="eyebrow">Selected work</p><h2>{page.data.blocks.project_heading}</h2></div>
-      <div class="featured-projects">{projects.map((entry) => <article>
+      <div class="featured-projects">{featuredProjects.map(({ entry, destination }) => <article>
         <p class="project-role">{entry.data.contribution}</p>
         <h3>{entry.data.title}</h3><p>{entry.data.description_short}</p>
-        {hasPage('casework') && <a class="text-link" href={`/casework/#${entry.id}`}>Read about this work <Icon name="lucide:arrow-right" aria-hidden="true" /></a>}
+        {destination && <a class="text-link" href={destination}>Read about this work <Icon name="lucide:arrow-right" aria-hidden="true" /></a>}
       </article>)}</div>
     </div></section>}
+    <PersonalPhotos page={page} />
     {hasPage('contact') && <section class="container contact-band">
       <div><p class="eyebrow">Professional enquiries</p><h2>{page.data.blocks.contact_heading}</h2><p>{page.data.blocks.contact_description}</p></div>
       <a class="button button-primary" href="/contact/">Contact me <Icon name="lucide:arrow-right" aria-hidden="true" /></a>

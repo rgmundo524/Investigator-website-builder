@@ -3,21 +3,21 @@ import type { CollectionEntry } from 'astro:content';
 import { Icon } from 'astro-icon/components';
 import BookingButton from './BookingButton.astro';
 
-type Props = { entry: CollectionEntry<'contacts'> };
-const { entry } = Astro.props;
+type Props = { entry: CollectionEntry<'contacts'>; profile?: CollectionEntry<'profile'> };
+const { entry, profile } = Astro.props;
 const services = entry.data.services.filter(({ enabled }) => enabled)
   .sort((a, b) => a.display_order - b.display_order || a.id.localeCompare(b.id));
 const social = entry.data.social;
+const socialName = social?.name?.trim() || profile?.data.name;
 const showSocial = social?.enabled && (social.links.length > 0 || social.email || social.phone);
 ---
 <div class="container contact-directory">
   {services.length > 0 && <section aria-labelledby="contact-services-heading">
     <div class="section-heading"><h2 id="contact-services-heading">{entry.data.services_heading}</h2></div>
     <div class="contact-service-grid">
-      {services.map((service) => <article class:list={['contact-card', 'contact-service', { 'contact-service-primary': service.primary }]} id={`contact-service-${service.id}`} aria-labelledby={`contact-service-${service.id}-heading`}>
+      {services.map((service) => <article class="contact-card contact-service" id={`contact-service-${service.id}`} aria-labelledby={`contact-service-${service.id}-heading`}>
         <Icon name="lucide:briefcase-business" class="contact-card-icon" aria-hidden="true" />
         <h3 id={`contact-service-${service.id}-heading`}>{service.name}</h3>
-        {service.audience && <p class="contact-audience">{service.audience}</p>}
         <p class="contact-description">{service.description}</p>
         {(service.website || service.email || service.phone) && <dl class="contact-details">
           {service.website && <div><dt>Website</dt><dd><a href={service.website.url}>{service.website.label}</a></dd></div>}
@@ -35,7 +35,7 @@ const showSocial = social?.enabled && (social.links.length > 0 || social.email |
     <div class="contact-social-copy">
       <Icon name="lucide:mail" class="contact-card-icon" aria-hidden="true" />
       <h2 id="contact-social-heading">{social.title}</h2>
-      <p class="contact-person">{social.name}</p>
+      {socialName && <p class="contact-person">{socialName}</p>}
       <p class="contact-description">{social.description}</p>
       {(social.email || social.phone) && <dl class="contact-details">
         {social.email && <div><dt>Email</dt><dd><a href={`mailto:${social.email}`}>{social.email}</a></dd></div>}
